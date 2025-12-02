@@ -7,7 +7,6 @@ import { Header } from "@/components/shared/header"
 import { Footer } from "@/components/shared/footer"
 import { HeroSection } from "@/components/landing/hero-section"
 import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
-
 export default function HomePage() {
   return (
     <main className="min-h-screen">
