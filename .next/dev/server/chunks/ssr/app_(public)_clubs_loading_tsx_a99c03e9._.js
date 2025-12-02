@@ -1,14 +1,9 @@
 module.exports = [
-"[project]/app/(public)/clubs/loading.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
-"use strict";
+"[project]/app/(public)/clubs/loading.tsx [app-rsc] (ecmascript)", ((__turbopack_context__, module, exports) => {
 
-__turbopack_context__.s([
-    "default",
-    ()=>Loading
-]);
-function Loading() {
-    return null;
-}
+// export default function Loading() {
+//   return null
+// }
 }),
 ];
 

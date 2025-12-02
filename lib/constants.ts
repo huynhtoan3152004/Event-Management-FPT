@@ -19,7 +19,6 @@ import type {
 // Navigation links for public pages
 export const PUBLIC_NAV_LINKS = [
   { label: "Sự kiện", href: "/events" },
-  { label: "Câu lạc bộ", href: "/clubs" },
   { label: "Giới thiệu", href: "/about" },
 ]
 

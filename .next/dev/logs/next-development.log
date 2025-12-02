@@ -70,3 +70,109 @@ Export ClubsSection doesn't exist in target module
 The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
 The module has no exports at all.
 All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:33:58.998] Browser ERROR   ./app/page.tsx:10:1
+Export ClubsSection doesn't exist in target module
+   8 | import { HeroSection } from "@/components/landing/hero-section"
+   9 | import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
+> 10 | import { ClubsSection } from "@/components/landing/clubs-section"
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |
+  12 | export default function HomePage() {
+  13 |   return (
+
+The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:33:59.992] Browser ERROR   ./app/page.tsx:10:1
+Export ClubsSection doesn't exist in target module
+   8 | import { HeroSection } from "@/components/landing/hero-section"
+   9 | import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
+> 10 | import { ClubsSection } from "@/components/landing/clubs-section"
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |
+  12 | export default function HomePage() {
+  13 |   return (
+
+The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:34:08.998] Browser ERROR   ./app/page.tsx:10:1
+Export ClubsSection doesn't exist in target module
+   8 | import { HeroSection } from "@/components/landing/hero-section"
+   9 | import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
+> 10 | import { ClubsSection } from "@/components/landing/clubs-section"
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |
+  12 | export default function HomePage() {
+  13 |   return (
+
+The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:34:08.998] Browser ERROR   ./app/page.tsx:10:1
+Export ClubsSection doesn't exist in target module
+   8 | import { HeroSection } from "@/components/landing/hero-section"
+   9 | import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
+> 10 | import { ClubsSection } from "@/components/landing/clubs-section"
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |
+  12 | export default function HomePage() {
+  13 |   return (
+
+The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:34:43.999] Browser ERROR   ./app/page.tsx:10:1
+Export ClubsSection doesn't exist in target module
+   8 | import { HeroSection } from "@/components/landing/hero-section"
+   9 | import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section"
+> 10 | import { ClubsSection } from "@/components/landing/clubs-section"
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |
+  12 | export default function HomePage() {
+  13 |   return (
+
+The export ClubsSection was not found in module [project]/components/landing/clubs-section.tsx [app-rsc] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:36:29.588] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.601] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\.next\dev\server\chunks\ssr\node_modules_next_dist_ae0baa7d._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.607] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\base-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.611] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\next-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.613] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\dev\next-dev-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.614] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\trace\trace.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.616] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.618] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.620] Server  ERROR    ⨯ Error: The default export is not a React Component in "/clubs/loading"
+[00:36:29.624] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.625] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\.next\dev\server\chunks\ssr\node_modules_next_dist_ae0baa7d._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.626] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\base-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.626] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\next-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.627] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\dev\next-dev-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.627] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\trace\trace.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.628] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.629] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:29.630] Server  ERROR    ⨯ Error: The default export is not a React Component in "/clubs/loading"
+[00:36:30.892] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.894] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\.next\dev\server\chunks\ssr\node_modules_next_dist_ae0baa7d._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.895] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\base-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.895] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\next-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.896] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\dev\next-dev-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.897] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\trace\trace.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.898] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.899] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.900] Server  ERROR    ⨯ Error: The default export is not a React Component in "/clubs/loading"
+[00:36:30.933] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.935] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\.next\dev\server\chunks\ssr\node_modules_next_dist_ae0baa7d._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.936] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\base-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.938] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\next-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.939] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\dev\next-dev-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.940] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\trace\trace.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.942] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.942] Server  ERROR   D:\WorkSpace\SWP392FA\event-hub-react-project\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:36:30.944] Server  ERROR    ⨯ Error: The default export is not a React Component in "/clubs/loading"
+[00:36:31.176] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/clubs/loading"
+[00:36:34.323] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:36:34.323] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:36:34.323] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.0","sv":"0.1.3","ts":1764642248164}
+[00:37:36.444] Server  LOG      ✓ Compiled in 48ms

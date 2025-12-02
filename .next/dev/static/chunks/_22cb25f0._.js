@@ -168,10 +168,6 @@ const PUBLIC_NAV_LINKS = [
         href: "/events"
     },
     {
-        label: "Câu lạc bộ",
-        href: "/clubs"
-    },
-    {
         label: "Giới thiệu",
         href: "/about"
     }
