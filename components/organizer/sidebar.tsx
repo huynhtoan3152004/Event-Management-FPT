@@ -1,0 +1,178 @@
+/* ============================================
+   Organizer Sidebar Component - Compact Design
+   Using shadcn Sidebar for consistent UI
+   ============================================ */
+
+"use client"
+
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  LayoutDashboard,
+  Calendar,
+  Armchair,
+  BarChart3,
+  Users,
+  MapPin,
+  Settings,
+  LogOut,
+  ChevronRight,
+} from "lucide-react"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+const mainNavItems = [
+  { label: "Dashboard", href: "/organizer", icon: LayoutDashboard },
+  { label: "My Events", href: "/organizer/events", icon: Calendar },
+]
+
+const manageNavItems = [
+  { label: "Speakers", href: "/organizer/speakers", icon: Users },
+  { label: "Venues", href: "/organizer/venues", icon: MapPin },
+  { label: "Seats", href: "/organizer/seats", icon: Armchair },
+]
+
+const analyticsNavItems = [{ label: "Reports", href: "/organizer/reports", icon: BarChart3 }]
+
+export function OrganizerSidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    router.push("/login")
+  }
+
+  const isActive = (href: string) => {
+    return pathname === href || (href !== "/organizer" && pathname.startsWith(href))
+  }
+
+  return (
+    <Sidebar collapsible="icon" className="border-r">
+      <SidebarHeader className="border-b p-3">
+        <Link href="/organizer" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <span className="text-xs font-bold text-foreground">FPU</span>
+          </div>
+          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+            <span className="text-sm font-semibold text-foreground">FPTU Events</span>
+            <span className="text-xs text-muted-foreground">Organizer Panel</span>
+          </div>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {/* Main Navigation */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Manage Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {manageNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Analytics Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {analyticsNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="h-auto py-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src="/male-organizer-avatar.jpg" />
+                    <AvatarFallback className="text-xs">O</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden">
+                    <span className="font-medium">Organizer</span>
+                    <span className="text-muted-foreground">Admin</span>
+                  </div>
+                  <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/organizer/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
+  )
+}

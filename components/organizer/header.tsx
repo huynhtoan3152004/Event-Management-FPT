@@ -1,0 +1,76 @@
+/* ============================================
+   Organizer Header Component - Compact Design
+   Top bar for organizer panel with shadcn components
+   ============================================ */
+
+"use client"
+
+import Link from "next/link"
+import { Bell, HelpCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
+
+interface OrganizerHeaderProps {
+  title?: string
+}
+
+export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
+  return (
+    <header className="h-12 bg-card border-b px-3 flex items-center justify-between gap-2">
+      {/* Left Section */}
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage className="text-sm font-medium">{title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+
+      {/* Right Section */}
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Bell className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+
+        {/* User Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src="/male-organizer-avatar.jpg" alt="Organizer" />
+                <AvatarFallback className="text-xs">O</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem>Profile</DropdownMenuItem>
+            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/login" className="text-destructive">
+                Logout
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  )
+}
