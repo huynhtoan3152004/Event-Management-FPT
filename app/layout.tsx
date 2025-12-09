@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { Providers } from "./providers"
 import "./globals.css"
 
 // Font configuration - Single unified font across all pages
@@ -27,8 +28,10 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <Providers>
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   )
