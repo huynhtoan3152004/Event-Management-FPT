@@ -9,37 +9,29 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react"
+import { useLogin } from "@/hooks/use-auth"
 
 export default function LoginPage() {
-  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [userType, setUserType] = useState<"student" | "organizer" | "staff">("student")
+  const loginMutation = useLogin()
 
-  // Demo login handler - routes to appropriate dashboard
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Route based on user type selection
-    switch (userType) {
-      case "student":
-        router.push("/dashboard")
-        break
-      case "organizer":
-        router.push("/organizer")
-        break
-      case "staff":
-        router.push("/staff")
-        break
+    // Validate
+    if (!email || !password) {
+      return
     }
+
+    // Call API
+    loginMutation.mutate({ email, password })
   }
 
   return (
@@ -64,15 +56,6 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent>
-          {/* User Type Tabs */}
-          <Tabs defaultValue="student" className="mb-6" onValueChange={(v) => setUserType(v as typeof userType)}>
-            <TabsList className="grid grid-cols-3 w-full">
-              <TabsTrigger value="student">Sinh viên</TabsTrigger>
-              <TabsTrigger value="organizer">Organizer</TabsTrigger>
-              <TabsTrigger value="staff">Staff</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-2">
@@ -121,8 +104,19 @@ export default function LoginPage() {
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full rounded-full">
-              Đăng nhập
+            <Button
+              type="submit"
+              className="w-full rounded-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                'Đăng nhập'
+              )}
             </Button>
           </form>
 

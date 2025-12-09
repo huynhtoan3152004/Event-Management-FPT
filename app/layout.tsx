@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Providers } from "./providers"
+import { ToastProvider } from "@/components/toast-provider"
 import "./globals.css"
 
 // Font configuration - Single unified font across all pages
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           {children}
+          <ToastProvider />
           <Analytics />
         </Providers>
       </body>

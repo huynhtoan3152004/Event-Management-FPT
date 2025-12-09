@@ -19,12 +19,17 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
+import { useUser } from "@/hooks/use-user"
+import { useLogout } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface OrganizerHeaderProps {
   title?: string
 }
 
 export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
+  const { user, isLoading } = useUser()
+  const { logout } = useLogout()
   return (
     <header className="h-12 bg-card border-b px-3 flex items-center justify-between gap-2">
       {/* Left Section */}
@@ -50,26 +55,42 @@ export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
         </Button>
 
         {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src="/male-organizer-avatar.jpg" alt="Organizer" />
-                <AvatarFallback className="text-xs">O</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/login" className="text-destructive">
+        {isLoading ? (
+          <Skeleton className="h-8 w-8 rounded-full" />
+        ) : user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+                  <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div className="font-medium">{user.name}</div>
+                <div className="text-muted-foreground">{user.email}</div>
+                <div className="capitalize mt-1">{user.roleName || user.roleId || 'Organizer'}</div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/organizer/settings">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/organizer/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-destructive">
                 Logout
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/login">Đăng nhập</Link>
+          </Button>
+        )}
       </div>
     </header>
   )

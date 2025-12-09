@@ -10,11 +10,14 @@ import { useRouter } from "next/navigation"
 import { Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MOCK_STAFF_USER } from "@/lib/constants"
+import { useUser } from "@/hooks/use-user"
+import { useLogout } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function StaffHeader() {
   const router = useRouter()
-  const user = MOCK_STAFF_USER
+  const { user, isLoading } = useUser()
+  const { logout } = useLogout()
 
   return (
     <header className="h-14 bg-card border-b px-4 lg:px-6 flex items-center justify-between">
@@ -28,14 +31,24 @@ export function StaffHeader() {
 
       {/* User Section */}
       <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground hidden sm:block">{user.name}</span>
-        <Avatar className="h-7 w-7">
-          <AvatarImage src="/male-asian-staff-avatar.jpg" alt={user.name} />
-          <AvatarFallback className="text-xs">{user.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <Button variant="default" size="sm" className="rounded-full h-8 text-xs" onClick={() => router.push("/login")}>
-          Logout
-        </Button>
+        {isLoading ? (
+          <Skeleton className="h-7 w-24" />
+        ) : user ? (
+          <>
+            <span className="text-sm text-muted-foreground hidden sm:block">{user.name}</span>
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+              <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <Button variant="default" size="sm" className="rounded-full h-8 text-xs" onClick={logout}>
+              Logout
+            </Button>
+          </>
+        ) : (
+          <Button variant="default" size="sm" className="rounded-full h-8 text-xs" asChild>
+            <Link href="/login">Đăng nhập</Link>
+          </Button>
+        )}
       </div>
     </header>
   )

@@ -21,7 +21,15 @@ export interface ApiResponse<T = any> {
   success: boolean
   data: T
   message?: string
-  errors?: Record<string, string[]>
+  errors?: string[] | Record<string, string[]>
+}
+
+// Backend ApiResponse format (Success/Message/Data/Errors)
+export interface BackendApiResponse<T = any> {
+  success: boolean
+  message: string
+  data: T | null
+  errors?: string[] | null
 }
 
 export interface PaginatedResponse<T> {
@@ -178,24 +186,31 @@ export interface AttendanceReportResponse extends ApiResponse<{
 
 // ========== Auth Types ==========
 
-export interface LoginDto {
+export interface LoginRequest {
   email: string
   password: string
 }
 
-export interface RegisterDto {
+export interface RegisterRequest {
+  email: string
+  password: string
+  confirmPassword: string
   name: string
-  email: string
-  password: string
-  studentId?: string
-  phone?: string
+  phone: string
 }
 
-export interface AuthResponse extends ApiResponse<{
-  user: User
-  token: string
-  refreshToken?: string
-}> {}
+export interface AuthResponse {
+  accessToken: string
+  expiresAt: string // ISO date string
+  userId: string
+  email: string
+  name: string
+  roleId: string | null
+  roleName: string | null
+  isNewUser: boolean
+}
+
+export interface RegisterResponse extends BackendApiResponse<null> {}
 
 // ========== User Types ==========
 
@@ -206,6 +221,34 @@ export interface UpdateProfileDto {
 }
 
 export interface UserResponse extends ApiResponse<User> {}
+
+// ========== Auth Types ==========
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+  confirmPassword: string
+  name: string
+  phone: string
+}
+
+export interface AuthResponse {
+  accessToken: string
+  expiresAt: string // ISO date string
+  userId: string
+  email: string
+  name: string
+  roleId: string | null
+  roleName: string | null
+  isNewUser: boolean
+}
+
+export interface RegisterResponse extends BackendApiResponse<null> {}
 
 // ========== Upload Types ==========
 

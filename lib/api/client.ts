@@ -1,6 +1,6 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 // Tạo axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -66,41 +66,68 @@ apiClient.interceptors.response.use(
             // Có thể redirect đến login page
             // window.location.href = '/login'
           }
-          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
+            position: 'top-right',
+            autoClose: 4000,
+          })
           break
 
         case 403:
-          toast.error('Bạn không có quyền thực hiện hành động này.')
+          toast.error('Bạn không có quyền thực hiện hành động này.', {
+            position: 'top-right',
+            autoClose: 4000,
+          })
           break
 
         case 404:
-          toast.error('Không tìm thấy dữ liệu.')
+          toast.error('Không tìm thấy dữ liệu.', {
+            position: 'top-right',
+            autoClose: 3000,
+          })
           break
 
         case 422:
           // Validation error
           const message = data?.message || data?.error || 'Dữ liệu không hợp lệ.'
-          toast.error(message)
+          toast.error(message, {
+            position: 'top-right',
+            autoClose: 4000,
+          })
           break
 
         case 429:
-          toast.error('Quá nhiều yêu cầu. Vui lòng thử lại sau.')
+          toast.error('Quá nhiều yêu cầu. Vui lòng thử lại sau.', {
+            position: 'top-right',
+            autoClose: 4000,
+          })
           break
 
         case 500:
-          toast.error('Lỗi server. Vui lòng thử lại sau.')
+          toast.error('Lỗi server. Vui lòng thử lại sau.', {
+            position: 'top-right',
+            autoClose: 4000,
+          })
           break
 
         default:
           const errorMessage = data?.message || data?.error || 'Đã xảy ra lỗi không xác định.'
-          toast.error(errorMessage)
+          toast.error(errorMessage, {
+            position: 'top-right',
+            autoClose: 4000,
+          })
       }
     } else if (error.request) {
       // Request được gửi nhưng không nhận được response
-      toast.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.')
+      toast.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.', {
+        position: 'top-right',
+        autoClose: 4000,
+      })
     } else {
       // Lỗi khi setup request
-      toast.error('Đã xảy ra lỗi khi gửi yêu cầu.')
+      toast.error('Đã xảy ra lỗi khi gửi yêu cầu.', {
+        position: 'top-right',
+        autoClose: 4000,
+      })
     }
 
     // Log error trong development

@@ -39,6 +39,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useUser } from "@/hooks/use-user"
+import { useLogout } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const mainNavItems = [
   { label: "Dashboard", href: "/organizer", icon: LayoutDashboard },
@@ -55,11 +58,8 @@ const analyticsNavItems = [{ label: "Reports", href: "/organizer/reports", icon:
 
 export function OrganizerSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  const handleLogout = () => {
-    router.push("/login")
-  }
+  const { user, isLoading } = useUser()
+  const { logout } = useLogout()
 
   const isActive = (href: string) => {
     return pathname === href || (href !== "/organizer" && pathname.startsWith(href))
@@ -140,34 +140,55 @@ export function OrganizerSidebar() {
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-auto py-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src="/male-organizer-avatar.jpg" />
-                    <AvatarFallback className="text-xs">O</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden">
-                    <span className="font-medium">Organizer</span>
-                    <span className="text-muted-foreground">Admin</span>
+            {isLoading ? (
+              <SidebarMenuButton className="h-auto py-2" disabled>
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden gap-1">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-2 w-16" />
+                </div>
+              </SidebarMenuButton>
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton className="h-auto py-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+                      <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden">
+                      <span className="font-medium">{user.name}</span>
+                      <span className="text-muted-foreground capitalize">{user.roleName || user.roleId || 'Organizer'}</span>
+                    </div>
+                    <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="end" className="w-48">
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    <div className="font-medium">{user.email}</div>
                   </div>
-                  <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/organizer/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/organizer/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <SidebarMenuButton asChild>
+                <Link href="/login">
+                  <LogOut className="h-4 w-4" />
+                  <span>Đăng nhập</span>
+                </Link>
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

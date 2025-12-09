@@ -20,11 +20,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { MOCK_STUDENT_USER } from "@/lib/constants"
+import { useUser } from "@/hooks/use-user"
+import { useLogout } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function DashboardHeader() {
   const [searchQuery, setSearchQuery] = useState("")
-  const user = MOCK_STUDENT_USER
+  const { user, isLoading } = useUser()
+  const { logout } = useLogout()
 
   return (
     <header className="h-12 bg-card border-b px-3 flex items-center justify-between gap-3">
@@ -56,31 +59,42 @@ export function DashboardHeader() {
         </Button>
 
         {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 px-2 gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src="/female-asian-student-avatar.jpg" alt={user.name} />
-                <AvatarFallback className="text-xs">{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden sm:block">{user.name}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">Profile Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/tickets">My Tickets</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/login" className="text-destructive">
+        {isLoading ? (
+          <Skeleton className="h-8 w-24" />
+        ) : user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 px-2 gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+                  <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden sm:block">{user.name}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div className="font-medium">{user.email}</div>
+                <div className="capitalize">{user.roleName || user.roleId || 'User'}</div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Profile Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/tickets">My Tickets</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-destructive">
                 Logout
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/login">Đăng nhập</Link>
+          </Button>
+        )}
       </div>
     </header>
   )
