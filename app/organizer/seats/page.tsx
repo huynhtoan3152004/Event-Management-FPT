@@ -5,14 +5,16 @@
 
 "use client"
 
-import { useState } from "react"
-import { Armchair, RefreshCw } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Armchair, RefreshCw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OrganizerHeader } from "@/components/organizer/header"
-import { MOCK_VENUES, MOCK_EVENTS } from "@/lib/constants"
+import { eventService, EventListItem, SeatDto } from "@/lib/services/event.service"
+import { useUser } from "@/hooks/use-user"
+import { toast } from "react-toastify"
 import { cn } from "@/lib/utils"
 
 type SeatStatus = "available" | "reserved" | "occupied" | "blocked"
@@ -22,38 +24,94 @@ interface SeatData {
   row: string
   number: number
   status: SeatStatus
-}
-
-// Generate mock seats for a venue
-const generateSeats = (rows: number, seatsPerRow: number): SeatData[] => {
-  const seats: SeatData[] = []
-  for (let r = 0; r < rows; r++) {
-    const rowLetter = String.fromCharCode(65 + r)
-    for (let s = 1; s <= seatsPerRow; s++) {
-      const random = Math.random()
-      let status: SeatStatus = "available"
-      if (random > 0.7) status = "occupied"
-      else if (random > 0.5) status = "reserved"
-      else if (random > 0.95) status = "blocked"
-
-      seats.push({
-        id: `${rowLetter}-${s}`,
-        row: rowLetter,
-        number: s,
-        status,
-      })
-    }
-  }
-  return seats
+  seatId?: string
 }
 
 export default function OrganizerSeatsPage() {
-  const [selectedVenue, setSelectedVenue] = useState(MOCK_VENUES[0].id)
-  const [selectedEvent, setSelectedEvent] = useState(MOCK_EVENTS[0].id)
-  const [seats, setSeats] = useState<SeatData[]>(generateSeats(8, 12))
+  const { user } = useUser()
+  const [events, setEvents] = useState<EventListItem[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<string>("")
+  const [seats, setSeats] = useState<SeatData[]>([])
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null)
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true)
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
 
-  const venue = MOCK_VENUES.find((v) => v.id === selectedVenue)
+  // Fetch events của organizer
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!user?.userId) return
+      
+      try {
+        setIsLoadingEvents(true)
+        const response = await eventService.getAllEvents({
+          organizerId: user.userId,
+          pageNumber: 1,
+          pageSize: 100,
+        })
+        
+        if (response.success && response.data) {
+          setEvents(response.data)
+          // Tự động chọn event đầu tiên nếu có
+          if (response.data.length > 0 && !selectedEvent) {
+            setSelectedEvent(response.data[0].eventId)
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching events:', error)
+        toast.error('Không thể tải danh sách sự kiện.')
+      } finally {
+        setIsLoadingEvents(false)
+      }
+    }
+
+    fetchEvents()
+  }, [user?.userId])
+
+  // Fetch seats khi chọn event
+  useEffect(() => {
+    const fetchSeats = async () => {
+      if (!selectedEvent) {
+        setSeats([])
+        return
+      }
+
+      try {
+        setIsLoadingSeats(true)
+        const response = await eventService.getEventSeats(selectedEvent)
+        
+        if (response.success && response.data) {
+          // Map từ SeatDto sang SeatData
+          const mappedSeats: SeatData[] = response.data.map((seat) => {
+            // Parse seatNumber (ví dụ: "A1" -> row: "A", number: 1)
+            const match = seat.seatNumber.match(/^([A-Z]+)(\d+)$/)
+            const row = match ? match[1] : seat.rowLabel
+            const number = match ? parseInt(match[2], 10) : 0
+            
+            return {
+              id: seat.seatId || `${row}-${number}`,
+              seatId: seat.seatId,
+              row,
+              number,
+              status: seat.status as SeatStatus,
+            }
+          })
+          
+          setSeats(mappedSeats)
+        } else {
+          toast.error(response.message || 'Không thể tải danh sách ghế.')
+          setSeats([])
+        }
+      } catch (error: any) {
+        console.error('Error fetching seats:', error)
+        toast.error('Không thể tải danh sách ghế. Vui lòng thử lại.')
+        setSeats([])
+      } finally {
+        setIsLoadingSeats(false)
+      }
+    }
+
+    fetchSeats()
+  }, [selectedEvent])
 
   // Count seats by status
   const seatCounts = seats.reduce(
@@ -75,10 +133,14 @@ export default function OrganizerSeatsPage() {
     setSelectedSeat(null)
   }
 
-  // Regenerate seats
-  const regenerateSeats = () => {
-    setSeats(generateSeats(8, 12))
-    setSelectedSeat(null)
+  // Refresh seats
+  const refreshSeats = () => {
+    if (selectedEvent) {
+      // Trigger re-fetch bằng cách set lại selectedEvent
+      const currentEvent = selectedEvent
+      setSelectedEvent("")
+      setTimeout(() => setSelectedEvent(currentEvent), 100)
+    }
   }
 
   // Get seat color based on status
@@ -113,38 +175,38 @@ export default function OrganizerSeatsPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-4">
           <div className="w-64">
-            <label className="text-sm font-medium mb-1 block">Venue</label>
-            <Select value={selectedVenue} onValueChange={setSelectedVenue}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MOCK_VENUES.map((venue) => (
-                  <SelectItem key={venue.id} value={venue.id}>
-                    {venue.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-64">
             <label className="text-sm font-medium mb-1 block">Event</label>
-            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MOCK_EVENTS.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingEvents ? (
+              <div className="flex items-center gap-2 p-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading events...</span>
+              </div>
+            ) : (
+              <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn sự kiện" />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">Chưa có sự kiện nào</div>
+                  ) : (
+                    events.map((event) => (
+                      <SelectItem key={event.eventId} value={event.eventId}>
+                        {event.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="flex items-end">
-            <Button variant="outline" onClick={regenerateSeats}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              onClick={refreshSeats}
+              disabled={!selectedEvent || isLoadingSeats}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingSeats ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -156,18 +218,32 @@ export default function OrganizerSeatsPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Armchair className="h-4 w-4" />
-                {venue?.name} - Seat Map
+                {selectedEvent ? events.find(e => e.eventId === selectedEvent)?.title : 'Seat Map'}
               </CardTitle>
               <CardDescription>Click on a seat to view details or change status</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Stage */}
-              <div className="bg-muted rounded-lg p-3 text-center text-sm font-medium text-muted-foreground mb-6">
-                STAGE
-              </div>
+              {isLoadingSeats ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : !selectedEvent ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Vui lòng chọn một sự kiện để xem sơ đồ ghế
+                </div>
+              ) : seats.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Sự kiện này chưa có ghế nào
+                </div>
+              ) : (
+                <>
+                  {/* Stage */}
+                  <div className="bg-muted rounded-lg p-3 text-center text-sm font-medium text-muted-foreground mb-6">
+                    STAGE
+                  </div>
 
-              {/* Seats */}
-              <div className="space-y-2 overflow-x-auto">
+                  {/* Seats */}
+                  <div className="space-y-2 overflow-x-auto">
                 {Object.entries(seatsByRow).map(([row, rowSeats]) => (
                   <div key={row} className="flex items-center gap-2">
                     <span className="w-6 text-sm font-medium text-muted-foreground">{row}</span>
@@ -190,27 +266,29 @@ export default function OrganizerSeatsPage() {
                     </div>
                   </div>
                 ))}
-              </div>
+                  </div>
 
-              {/* Legend */}
-              <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
-                  <span className="text-xs">Available ({seatCounts.available})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
-                  <span className="text-xs">Reserved ({seatCounts.reserved})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-primary/20 border border-primary/30" />
-                  <span className="text-xs">Occupied ({seatCounts.occupied})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-muted border border-muted" />
-                  <span className="text-xs">Blocked ({seatCounts.blocked})</span>
-                </div>
-              </div>
+                        {/* Legend */}
+                    <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
+                        <span className="text-xs">Available ({seatCounts.available})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
+                        <span className="text-xs">Reserved ({seatCounts.reserved})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-primary/20 border border-primary/30" />
+                        <span className="text-xs">Occupied ({seatCounts.occupied})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-muted border border-muted" />
+                        <span className="text-xs">Blocked ({seatCounts.blocked})</span>
+                      </div>
+                    </div>
+                  </>
+                )}
             </CardContent>
           </Card>
 
