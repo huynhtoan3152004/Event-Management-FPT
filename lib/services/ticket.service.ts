@@ -68,6 +68,21 @@ class TicketService {
   }
 
   /**
+   * Lấy danh sách vé của một sự kiện
+   * @param eventId - ID của sự kiện
+   */
+  async getEventTickets(eventId: string): Promise<ApiResponse<TicketDto[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<TicketDto[]>>(
+        `/api/events/${eventId}/tickets`
+      )
+      return response.data
+    } catch (error: any) {
+      throw error
+    }
+  }
+
+  /**
    * Lấy thông tin vé theo mã vé
    * @param ticketCode - Mã vé
    */

@@ -24,11 +24,7 @@ export function Footer() {
   return (
     <footer className="bg-secondary/50 py-16">
       <div className="container mx-auto px-4">
-        {/* Meet Our Clubs CTA */}
-        <div className="text-center mb-12">
-          <h3 className="text-2xl font-bold text-foreground mb-2">Meet Our Clubs</h3>
-          <p className="text-muted-foreground">Find your community and passion.</p>
-        </div>
+        
 
         {/* Navigation Links */}
         <nav className="flex flex-wrap justify-center gap-6 mb-8">
