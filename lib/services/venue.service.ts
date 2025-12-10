@@ -18,6 +18,7 @@ export interface VenueDto {
   totalSeats?: number;
   createdAt?: string;
   updatedAt?: string | null;
+  facilities?: string;
 }
 
 export const venueService = {
