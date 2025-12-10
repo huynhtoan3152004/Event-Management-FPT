@@ -31,7 +31,7 @@ export default function StudentEventsPage() {
         const response = await eventService.getAllEvents({
           pageNumber: 1,
           pageSize: 100, // Lấy nhiều events để hiển thị
-          status: activeTab === "registered" ? undefined : activeTab, // registered sẽ filter sau
+          status: activeTab === "active" ? undefined : activeTab, // registered sẽ filter sau
         })
         
         if (response.success && response.data) {

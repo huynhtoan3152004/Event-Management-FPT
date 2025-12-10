@@ -195,15 +195,15 @@ export default function OrganizerEventsPage() {
           ) : (
             <TabsContent value={activeTab} className="mt-6">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredEvents.map((event) => (
+              {filteredEvents.map((event) => (
                   <EventManagementCard 
                     key={event.eventId} 
                     event={event}
                     onDelete={handleDeleteEvent}
                   />
-                ))}
-              </div>
-            </TabsContent>
+              ))}
+            </div>
+          </TabsContent>
           )}
         </Tabs>
       </main>
@@ -263,13 +263,13 @@ function EventManagementCard({
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem asChild>
               <Link href={`/organizer/events/${event.eventId}`} className="cursor-pointer">
-                <Eye className="h-4 w-4 mr-2" />
+              <Eye className="h-4 w-4 mr-2" />
                 Xem chi tiết
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/organizer/events/${event.eventId}/edit`} className="cursor-pointer">
-                <Edit className="h-4 w-4 mr-2" />
+              <Edit className="h-4 w-4 mr-2" />
                 Chỉnh sửa
               </Link>
             </DropdownMenuItem>
@@ -300,7 +300,7 @@ function EventManagementCard({
             <div className="flex items-center gap-2.5 text-muted-foreground">
               <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
               <span className="line-clamp-1">{event.location}</span>
-            </div>
+          </div>
           )}
           <div className="flex items-center gap-2.5 text-muted-foreground">
             <Users className="h-4 w-4 text-primary flex-shrink-0" />
@@ -316,14 +316,14 @@ function EventManagementCard({
             <div className="flex justify-between text-xs font-medium">
               <span className="text-muted-foreground">Tỷ lệ đăng ký</span>
               <span className="text-primary font-semibold">{percentage}%</span>
-            </div>
+          </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden shadow-inner">
-              <div
+            <div
                 className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${percentage}%` }}
-              />
-            </div>
+            />
           </div>
+        </div>
         )}
 
         <Link href={`/organizer/events/${event.eventId}`} className="block mt-auto">

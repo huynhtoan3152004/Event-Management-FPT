@@ -28,7 +28,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { eventService, EventDetailDto } from "@/lib/services/event.service"
+import { eventService, EventDetailDto, SeatDto } from "@/lib/services/event.service"
+import { ticketService, RegisterTicketRequest } from "@/lib/services/ticket.service"
+
 
 export default function StudentEventDetailPage() {
   const router = useRouter()
@@ -38,6 +40,10 @@ export default function StudentEventDetailPage() {
   const [event, setEvent] = useState<EventDetailDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRegistering, setIsRegistering] = useState(false)
+  const [seats, setSeats] = useState<SeatDto[]>([])
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
+  const [selectedSeatId, setSelectedSeatId] = useState<string>("")
+  const [seatPreference, setSeatPreference] = useState<string>("")
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -47,6 +53,10 @@ export default function StudentEventDetailPage() {
         
         if (response.success && response.data) {
           setEvent(response.data)
+          // Fetch seats if event has hall
+          if (response.data.hallId) {
+            fetchSeats(eventId)
+          }
         } else {
           toast.error(response.message || "Không tìm thấy sự kiện")
           router.push("/dashboard/events")
@@ -65,9 +75,93 @@ export default function StudentEventDetailPage() {
     }
   }, [eventId, router])
 
+  const fetchSeats = async (eventId: string) => {
+    try {
+      setIsLoadingSeats(true)
+      const response = await eventService.getEventSeats(eventId)
+      if (response.success && response.data) {
+        setSeats(response.data)
+      } else {
+        // Nếu không có ghế hoặc lỗi, set empty array
+        setSeats([])
+      }
+    } catch (error: any) {
+      console.error("Error fetching seats:", error)
+      // Không hiển thị error nếu không có ghế, chỉ log và set empty
+      setSeats([])
+    } finally {
+      setIsLoadingSeats(false)
+    }
+  }
+
   const handleRegister = async () => {
-    // TODO: Implement registration logic
-    toast.info("Tính năng đăng ký đang được phát triển")
+    if (!event) return
+
+    // Kiểm tra điều kiện đăng ký
+    if (!isRegistrationOpen) {
+      toast.warning("Sự kiện chưa mở đăng ký hoặc đã đóng đăng ký")
+      return
+    }
+
+    if (availableSeats <= 0) {
+      toast.warning("Sự kiện đã hết chỗ")
+      return
+    }
+
+    try {
+      setIsRegistering(true)
+      
+      // Tạo request body theo đúng format backend yêu cầu
+      const request: RegisterTicketRequest = {}
+      
+      // Nếu có chọn ghế cụ thể, gửi seatId
+      if (selectedSeatId && selectedSeatId.trim()) {
+        request.seatId = selectedSeatId.trim()
+      }
+      
+      // Nếu không chọn ghế cụ thể nhưng có preference, gửi seatPreference
+      // (Backend hiện chưa xử lý seatPreference, nhưng vẫn gửi để tương thích)
+      if (seatPreference && seatPreference.trim() && !selectedSeatId) {
+        request.seatPreference = seatPreference.trim()
+      }
+
+      // Gọi API đăng ký
+      const response = await ticketService.registerTicket(eventId, request)
+      
+      if (response.success && response.data) {
+        toast.success(response.message || "Đăng ký thành công!")
+        
+        // Refresh event data để cập nhật số lượng đăng ký
+        const eventResponse = await eventService.getEventById(eventId)
+        if (eventResponse.success && eventResponse.data) {
+          setEvent(eventResponse.data)
+        }
+        
+        // Refresh danh sách ghế nếu event có hall
+        if (event.hallId) {
+          await fetchSeats(eventId)
+        }
+        
+        // Reset form
+        setSelectedSeatId("")
+        setSeatPreference("")
+      } else {
+        // Hiển thị error message từ backend
+        const errorMessage = response.message || "Đăng ký thất bại. Vui lòng thử lại."
+        toast.error(errorMessage)
+      }
+    } catch (error: any) {
+      console.error("Error registering ticket:", error)
+      // Error đã được xử lý trong axios interceptor, 
+      // nhưng vẫn log để debug nếu cần
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else {
+        toast.error("Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.")
+      }
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   const formatDate = (dateStr: string) => {
@@ -134,9 +228,15 @@ export default function StudentEventDetailPage() {
   const totalSeats = event.totalSeats || 0
   const availableSeats = totalSeats - registeredCount
   const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0
-  const isRegistrationOpen = event.registrationStart && event.registrationEnd
-    ? new Date() >= new Date(event.registrationStart) && new Date() <= new Date(event.registrationEnd)
-    : false
+  
+  // Kiểm tra đăng ký mở: event phải published, có thời gian đăng ký, và trong khoảng thời gian đăng ký
+  const now = new Date()
+  const isRegistrationOpen = event.status === "published" 
+    && event.registrationStart 
+    && event.registrationEnd
+    && now >= new Date(event.registrationStart) 
+    && now <= new Date(event.registrationEnd)
+    && availableSeats > 0
 
   return (
     <div className="space-y-6 bg-gradient-to-br from-background via-muted/20 to-background min-h-screen -m-4 lg:-m-6 p-4 lg:p-6">
@@ -363,6 +463,47 @@ export default function StudentEventDetailPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Seat Selection */}
+                {isRegistrationOpen && availableSeats > 0 && event.hallId && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold">Chọn ghế (tùy chọn)</label>
+                      
+                      {isLoadingSeats ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <span className="ml-2 text-sm text-muted-foreground">Đang tải danh sách ghế...</span>
+                        </div>
+                      ) : seats.length > 0 ? (
+                        <div className="space-y-2">
+                          <select
+                            value={selectedSeatId}
+                            onChange={(e) => setSelectedSeatId(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background"
+                          >
+                            <option value="">Tự động chọn ghế</option>
+                            {seats.map((seat) => (
+                              <option key={seat.seatId} value={seat.seatId}>
+                                {seat.seatNumber} {seat.rowLabel ? `(${seat.rowLabel})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedSeatId 
+                              ? `Đã chọn: ${seats.find(s => s.seatId === selectedSeatId)?.seatNumber}`
+                              : "Hệ thống sẽ tự động chọn ghế trống cho bạn"}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Hệ thống sẽ tự động chọn ghế trống cho bạn
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* Register Button */}
                 {isRegistrationOpen && availableSeats > 0 ? (

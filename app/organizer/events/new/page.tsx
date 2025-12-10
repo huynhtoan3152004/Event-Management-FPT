@@ -28,7 +28,6 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { eventService } from "@/lib/services/event.service"
 import apiClient from "@/lib/api/client"
 
 type Hall = {
@@ -90,6 +89,90 @@ export default function CreateEventPage() {
     fetchSpeakers()
   }, [])
 
+  const postEvent = async (payload: {
+    title: string
+    description?: string
+    date: string
+    startTime: string
+    endTime: string
+    location?: string
+    hallId?: string
+    clubName?: string
+    registrationStart?: string
+    registrationEnd?: string
+    tags?: string | string[]
+    maxTicketsPerUser?: number
+    imageFile?: File | null
+    speakerIds?: string[]
+  }) => {
+    const formDataApi = new FormData()
+
+    formDataApi.append("Title", payload.title)
+    formDataApi.append("Date", payload.date)
+
+    const startTimeFormatted =
+      payload.startTime.includes(":") && payload.startTime.split(":").length === 2
+        ? `${payload.startTime}:00`
+        : payload.startTime
+    const endTimeFormatted =
+      payload.endTime.includes(":") && payload.endTime.split(":").length === 2
+        ? `${payload.endTime}:00`
+        : payload.endTime
+
+    formDataApi.append("StartTime", startTimeFormatted)
+    formDataApi.append("EndTime", endTimeFormatted)
+
+    if (payload.description?.trim()) formDataApi.append("Description", payload.description)
+    if (payload.location?.trim()) formDataApi.append("Location", payload.location)
+    // HallId optional; append only when provided
+    if (payload.hallId?.trim()) {
+      formDataApi.append("HallId", payload.hallId)
+    }
+    if (payload.clubName?.trim()) formDataApi.append("ClubName", payload.clubName)
+
+    if (payload.registrationStart) {
+      let regStart = payload.registrationStart
+      if (regStart.includes("T") && !regStart.includes("Z") && !regStart.includes("+")) {
+        if (regStart.split(":").length === 2) regStart = `${regStart}:00`
+      }
+      formDataApi.append("RegistrationStart", regStart)
+    }
+    if (payload.registrationEnd) {
+      let regEnd = payload.registrationEnd
+      if (regEnd.includes("T") && !regEnd.includes("Z") && !regEnd.includes("+")) {
+        if (regEnd.split(":").length === 2) regEnd = `${regEnd}:00`
+      }
+      formDataApi.append("RegistrationEnd", regEnd)
+    }
+
+    if (payload.tags) {
+      const tagsValue = Array.isArray(payload.tags) ? payload.tags.join(",") : payload.tags
+      if (tagsValue.trim()) formDataApi.append("Tags", tagsValue)
+    }
+
+    if (
+      payload.maxTicketsPerUser !== undefined &&
+      payload.maxTicketsPerUser >= 1 &&
+      payload.maxTicketsPerUser <= 10
+    ) {
+      formDataApi.append("MaxTicketsPerUser", String(payload.maxTicketsPerUser))
+    }
+
+
+    if (payload.imageFile) {
+      formDataApi.append("ImageFile", payload.imageFile)
+    }
+
+    if (payload.speakerIds && payload.speakerIds.length > 0) {
+      payload.speakerIds.forEach((id) => formDataApi.append("SpeakerIds", id))
+    }
+
+    const response = await apiClient.post("/api/Events", formDataApi, {
+      timeout: 120000,
+    })
+    return response.data
+  }
+
   const handleSubmit = async (formData: FormData) => {
     try {
       setIsSubmitting(true)
@@ -104,9 +187,6 @@ export default function CreateEventPage() {
         location: (formData.get("location") as string) || undefined,
         hallId: selectedHallId || undefined,
         clubName: (formData.get("clubName") as string) || undefined,
-        totalSeats: Number(formData.get("totalSeats") || 0),
-        rows: Number(formData.get("rows") || 0),
-        seatsPerRow: Number(formData.get("seatsPerRow") || 0),
         registrationStart: (formData.get("registrationStart") as string) || undefined,
         registrationEnd: (formData.get("registrationEnd") as string) || undefined,
         tags:
@@ -123,19 +203,6 @@ export default function CreateEventPage() {
 
       if (!payload.title || !payload.date || !payload.startTime || !payload.endTime) {
         toast.error("Vui lòng nhập đủ Title, Date, StartTime, EndTime")
-        setIsSubmitting(false)
-        return
-      }
-
-      if (!payload.totalSeats || !payload.rows || !payload.seatsPerRow) {
-        toast.error("Vui lòng nhập TotalSeats, Rows, SeatsPerRow")
-        setIsSubmitting(false)
-        return
-      }
-
-      // Validate Rows * SeatsPerRow = TotalSeats (backend requirement)
-      if (payload.rows * payload.seatsPerRow !== payload.totalSeats) {
-        toast.error(`Tổng số ghế phải bằng Số hàng × Số ghế mỗi hàng (${payload.rows} × ${payload.seatsPerRow} = ${payload.rows * payload.seatsPerRow}). Bạn đã nhập ${payload.totalSeats}.`)
         setIsSubmitting(false)
         return
       }
@@ -162,7 +229,7 @@ export default function CreateEventPage() {
         return
       }
 
-      await eventService.createEvent(payload)
+      await postEvent(payload)
       toast.success("Tạo sự kiện thành công!")
       router.push("/organizer/events")
     } catch (error: any) {
@@ -273,7 +340,7 @@ export default function CreateEventPage() {
             Tạo sự kiện mới
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
-            Điền thông tin chi tiết sự kiện. Hệ thống sẽ tự động tạo chỗ ngồi dựa trên Rows và SeatsPerRow.
+            Điền thông tin chi tiết sự kiện. Hệ thống sẽ tự động cấu hình chỗ ngồi theo hall.
           </p>
         </div>
 
@@ -373,59 +440,11 @@ export default function CreateEventPage() {
               <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  Chỗ ngồi & Vé
+                  Vé & Tag
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Thiết lập Rows, SeatsPerRow và giới hạn vé</CardDescription>
+                <CardDescription className="text-sm mt-1">Thiết lập đăng ký và tag (không cần nhập số ghế)</CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-3 gap-5 p-6">
-                <div className="space-y-2">
-                  <Label htmlFor="totalSeats" className="text-sm font-semibold flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    TotalSeats *
-                  </Label>
-                  <Input
-                    id="totalSeats"
-                    name="totalSeats"
-                    type="number"
-                    min={1}
-                    placeholder="500"
-                    required
-                    className="h-11 border-2 focus:border-primary transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rows" className="text-sm font-semibold flex items-center gap-2">
-                    <Rows className="h-4 w-4 text-primary" />
-                    Rows *
-                  </Label>
-                  <Input 
-                    id="rows" 
-                    name="rows" 
-                    type="number" 
-                    min={1} 
-                    placeholder="10" 
-                    required 
-                    className="h-11 border-2 focus:border-primary transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="seatsPerRow" className="text-sm font-semibold flex items-center gap-2">
-                    <LayoutGrid className="h-4 w-4 text-primary" />
-                    SeatsPerRow *
-                  </Label>
-                  <Input
-                    id="seatsPerRow"
-                    name="seatsPerRow"
-                    type="number"
-                    min={1}
-                    placeholder="50"
-                    required
-                    className="h-11 border-2 focus:border-primary transition-colors"
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="registrationStart">Registration Start</Label>
                   <Input id="registrationStart" name="registrationStart" type="datetime-local" />
@@ -455,7 +474,7 @@ export default function CreateEventPage() {
                   <Tag className="h-5 w-5 text-primary" />
                   Thông tin bổ sung
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Hall, Club, Tags, Speakers, Ảnh</CardDescription>
+                <CardDescription className="text-sm mt-1">Hall,  Tags, Speakers, Ảnh</CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -465,15 +484,13 @@ export default function CreateEventPage() {
                   ) : halls.length > 0 ? (
                     <Select
                       value={selectedHallId ?? undefined}
-                      onValueChange={(value) =>
-                        setSelectedHallId(value === "__none" ? undefined : (value as string | undefined))
-                      }
+                      onValueChange={(value) => setSelectedHallId(value as string)}
                     >
                       <SelectTrigger id="hallId">
-                        <SelectValue placeholder="Chọn hall (nếu có)" />
+                        <SelectValue placeholder="Chọn hall (hoặc bỏ trống)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">(Không chọn hall)</SelectItem>
+                        <SelectItem value="__none">Không chọn hall</SelectItem>
                         {halls.map((hall) => (
                           <SelectItem key={hall.hallId} value={hall.hallId}>
                             {hall.name}
@@ -615,7 +632,7 @@ export default function CreateEventPage() {
                 <div className="text-sm text-muted-foreground space-y-2 bg-muted/50 p-4 rounded-lg border">
                   <p className="flex items-start gap-2">
                     <span className="text-primary font-semibold">•</span>
-                    <span>Title, Date, StartTime, EndTime, TotalSeats, Rows, SeatsPerRow là bắt buộc.</span>
+                    <span>Title, Date, StartTime, EndTime là bắt buộc.</span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-primary font-semibold">•</span>
