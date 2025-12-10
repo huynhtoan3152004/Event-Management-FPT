@@ -111,6 +111,30 @@ class TicketService {
       throw error
     }
   }
+
+  /**
+   * Check-in vé bằng ticket code
+   * @param ticketCode - Mã vé (từ QR code)
+   */
+  async checkInByCode(ticketCode: string): Promise<ApiResponse<CheckInResultDto>> {
+    try {
+      const response = await apiClient.post<ApiResponse<CheckInResultDto>>(
+        `/api/tickets/${ticketCode}/checkin`
+      )
+      return response.data
+    } catch (error: any) {
+      throw error
+    }
+  }
+}
+
+export interface CheckInResultDto {
+  result: string
+  ticketId?: string
+  attendeeName?: string
+  ticketCode?: string
+  checkInTime?: string
+  seatInfo?: string
 }
 
 export const ticketService = new TicketService()

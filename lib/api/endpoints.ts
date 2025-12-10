@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     CANCEL_REGISTRATION: (eventId: string) =>
       `/api/Events/${eventId}/cancel-registration`,
     STATS: (id: string) => `/api/Events/${id}/stats`,
+    STATISTICS: (id: string) => `/api/Events/${id}/statistics`,
     ATTENDANCE: (id: string) => `/api/Events/${id}/attendance`,
     PUBLISH: (id: string) => `/api/Events/${id}/publish`,
   },
@@ -76,7 +77,7 @@ export const API_ENDPOINTS = {
 
   // ========== Check-in ==========
   CHECKIN: {
-    CHECK_IN: (eventId: string) => `/checkin/${eventId}`,
+    CHECK_IN: (ticketCode: string) => `/api/tickets/${ticketCode}/checkin`,
     VERIFY_TICKET: (ticketCode: string) => `/checkin/verify/${ticketCode}`,
     RECORDS: (eventId: string) => `/checkin/${eventId}/records`,
     STATS: (eventId: string) => `/checkin/${eventId}/stats`,

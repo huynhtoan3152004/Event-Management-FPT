@@ -99,6 +99,44 @@ export interface EventDetailDto extends EventListItem {
 }
 
 export const eventService = {
+  async getEventStatistics(eventId: string): Promise<{
+    success: boolean
+    data?: {
+      eventId: string
+      title: string
+      description: string
+      date: string
+      startTime: string
+      endTime: string
+      location: string
+      imageUrl: string
+      status: string
+      totalSeats: number
+      registeredCount: number
+      checkedInCount: number
+      checkInRate: number
+      speakers: Array<{
+        speakerId: string
+        name: string
+        title: string
+        organization: string
+        imageUrl: string
+      }>
+      recentCheckIns: Array<{
+        attendeeName: string
+        ticketCode: string
+        seatNumber: string
+        checkInTime: string
+        status: string
+      }>
+    }
+    message?: string
+    errors?: string[]
+  }> {
+    const response = await apiClient.get(API_ENDPOINTS.EVENTS.STATISTICS(eventId))
+    return response.data
+  },
+
   async getEventById(eventId: string): Promise<{ success: boolean; data: EventDetailDto; message?: string }> {
     const response = await apiClient.get<{ success: boolean; data: EventDetailDto; message?: string }>(
       API_ENDPOINTS.EVENTS.BY_ID(eventId)
