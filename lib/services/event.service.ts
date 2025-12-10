@@ -132,6 +132,13 @@ export const eventService = {
     return response.data
   },
 
+  async publishEvent(eventId: string) {
+    const response = await apiClient.post<{ success: boolean; message?: string; data?: any }>(
+      API_ENDPOINTS.EVENTS.PUBLISH(eventId)
+    )
+    return response.data
+  },
+
 
   async updateEvent(eventId: string, payload: UpdateEventRequest) {
     const formData = new FormData()

@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -22,6 +22,7 @@ import {
   Building2,
   Ticket,
   CheckCircle2,
+  X,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,31 @@ export default function StudentEventDetailPage() {
   const [isLoadingSeats, setIsLoadingSeats] = useState(false)
   const [selectedSeatId, setSelectedSeatId] = useState<string>("")
   const [seatPreference, setSeatPreference] = useState<string>("")
+  const [isSeatGridOpen, setIsSeatGridOpen] = useState(false)
+  const [qrModalUrl, setQrModalUrl] = useState<string>("")
+  const [qrTicketCode, setQrTicketCode] = useState<string>("")
+  const [hasRegistered, setHasRegistered] = useState(false)
+
+  // Group seats upfront to keep hook order consistent even when early-return loading
+  const groupedSeats = useMemo(() => {
+    const groups = seats.reduce<Record<string, SeatDto[]>>((acc, seat) => {
+      const row = seat.rowLabel || "Row"
+      acc[row] = acc[row] || []
+      acc[row].push(seat)
+      return acc
+    }, {})
+    return Object.entries(groups)
+      .map(([row, rowSeats]) => ({
+        row,
+        seats: rowSeats.sort((a, b) => a.seatNumber.localeCompare(b.seatNumber, undefined, { numeric: true })),
+      }))
+      .sort((a, b) => a.row.localeCompare(b.row))
+  }, [seats])
+
+  const maxSeatsPerRow = useMemo(
+    () => groupedSeats.reduce((m, g) => Math.max(m, g.seats.length), 0),
+    [groupedSeats]
+  )
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -131,6 +157,33 @@ export default function StudentEventDetailPage() {
       if (response.success && response.data) {
         toast.success(response.message || "Đăng ký thành công!")
         
+        // Lấy ticketCode để fetch chi tiết/QR
+        const ticketCode = response.data.ticketCode
+
+        // Tạo QR code bằng third-party (qrserver) và hiển thị modal tại chỗ
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(ticketCode)}`
+        setQrModalUrl(qrUrl)
+        setQrTicketCode(ticketCode)
+        setHasRegistered(true)
+
+        // Gọi song song 2 API: danh sách vé của user và chi tiết vé theo code (để lấy QR hoặc hiển thị)
+        try {
+          const [myTicketsRes, ticketByCodeRes] = await Promise.all([
+            ticketService.getMyTickets(),
+            ticketService.getTicketByCode(ticketCode),
+          ])
+
+          if (myTicketsRes.success) {
+            console.log("📥 My tickets:", myTicketsRes.data)
+          }
+          if (ticketByCodeRes.success) {
+            console.log("📥 Ticket by code:", ticketByCodeRes.data)
+            toast.info(`Mã vé của bạn: ${ticketCode}`)
+          }
+        } catch (fetchTicketErr) {
+          console.warn("Không tải được thông tin vé sau đăng ký", fetchTicketErr)
+        }
+
         // Refresh event data để cập nhật số lượng đăng ký
         const eventResponse = await eventService.getEventById(eventId)
         if (eventResponse.success && eventResponse.data) {
@@ -163,6 +216,8 @@ export default function StudentEventDetailPage() {
       setIsRegistering(false)
     }
   }
+
+  const closeSeatModal = () => setIsSeatGridOpen(false)
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -239,7 +294,8 @@ export default function StudentEventDetailPage() {
     && availableSeats > 0
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-background via-muted/20 to-background min-h-screen -m-4 lg:-m-6 p-4 lg:p-6">
+    <>
+    <div className="space-y-6 bg-background min-h-screen p-4 lg:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header Actions */}
         <div className="flex items-center justify-between">
@@ -252,7 +308,7 @@ export default function StudentEventDetailPage() {
         </div>
 
         {/* Event Image */}
-        <Card className="overflow-hidden border-2 shadow-lg">
+        <Card className="overflow-hidden border-2 shadow-lg bg-background">
           <div className="relative w-full h-80 overflow-hidden">
             <Image
               src={event.imageUrl || "/placeholder.svg"}
@@ -279,14 +335,14 @@ export default function StudentEventDetailPage() {
           {/* Left Column - Main Info */}
           <div className="md:col-span-2 space-y-6">
             {/* Event Details */}
-            <Card className="border-2 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+            <Card className="border-2 shadow-lg bg-background">
+              <CardHeader className="border-b">
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
                   Thông tin sự kiện
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="p-6 pt-0 space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -364,8 +420,8 @@ export default function StudentEventDetailPage() {
 
             {/* Speakers */}
             {event.speakers && event.speakers.length > 0 && (
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+              <Card className="border-2 shadow-lg bg-background">
+                <CardHeader className="border-b">
                   <CardTitle className="text-xl flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
                     Diễn giả
@@ -404,8 +460,8 @@ export default function StudentEventDetailPage() {
           {/* Right Column - Registration */}
           <div className="space-y-6">
             {/* Registration Card */}
-            <Card className="border-2 shadow-lg sticky top-24">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+            <Card className="border-2 shadow-lg sticky top-24 bg-background">
+              <CardHeader className="border-b">
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Ticket className="h-5 w-5 text-primary" />
                   Đăng ký tham gia
@@ -464,44 +520,40 @@ export default function StudentEventDetailPage() {
                   </div>
                 </div>
 
-                {/* Seat Selection */}
-                {isRegistrationOpen && availableSeats > 0 && event.hallId && (
+                {/* Seat Selection (hiển thị khi có hall và còn chỗ, không phụ thuộc mở đăng ký) */}
+                {event.hallId && availableSeats > 0 && (
                   <>
                     <Separator />
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold">Chọn ghế (tùy chọn)</label>
-                      
-                      {isLoadingSeats ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                          <span className="ml-2 text-sm text-muted-foreground">Đang tải danh sách ghế...</span>
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold">Chọn ghế (tùy chọn)</label>
+                    
+                    {isLoadingSeats ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <span className="ml-2 text-sm text-muted-foreground">Đang tải danh sách ghế...</span>
+                      </div>
+                    ) : seats.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {selectedSeatId
+                              ? `Đã chọn: ${seats.find((s) => s.seatId === selectedSeatId)?.seatNumber}`
+                              : "Chưa chọn ghế. Có thể để hệ thống tự chọn."}
+                          </span>
+                          <Button size="sm" variant="outline" onClick={() => setIsSeatGridOpen(true)}>
+                            Mở danh sách ghế
+                          </Button>
                         </div>
-                      ) : seats.length > 0 ? (
-                        <div className="space-y-2">
-                          <select
-                            value={selectedSeatId}
-                            onChange={(e) => setSelectedSeatId(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background"
-                          >
-                            <option value="">Tự động chọn ghế</option>
-                            {seats.map((seat) => (
-                              <option key={seat.seatId} value={seat.seatId}>
-                                {seat.seatNumber} {seat.rowLabel ? `(${seat.rowLabel})` : ''}
-                              </option>
-                            ))}
-                          </select>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedSeatId 
-                              ? `Đã chọn: ${seats.find(s => s.seatId === selectedSeatId)?.seatNumber}`
-                              : "Hệ thống sẽ tự động chọn ghế trống cho bạn"}
-                          </p>
+                        <div className="text-xs text-muted-foreground">
+                          Bạn có thể chọn hoặc bỏ chọn ghế trong cửa sổ danh sách ghế.
                         </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Hệ thống sẽ tự động chọn ghế trống cho bạn
-                        </p>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Hệ thống sẽ tự động chọn ghế trống cho bạn
+                      </p>
+                    )}
+                  </div>
                   </>
                 )}
 
@@ -510,7 +562,7 @@ export default function StudentEventDetailPage() {
                   <Button 
                     className="w-full rounded-full h-11 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300"
                     onClick={handleRegister}
-                    disabled={isRegistering}
+                    disabled={isRegistering || hasRegistered}
                   >
                     {isRegistering ? (
                       <>
@@ -520,7 +572,7 @@ export default function StudentEventDetailPage() {
                     ) : (
                       <>
                         <Ticket className="h-4 w-4 mr-2" />
-                        Đăng ký ngay
+                        {hasRegistered ? "Đã đăng ký" : "Đăng ký ngay"}
                       </>
                     )}
                   </Button>
@@ -530,7 +582,11 @@ export default function StudentEventDetailPage() {
                     variant="outline"
                     disabled
                   >
-                    {availableSeats === 0 ? "Đã hết chỗ" : "Chưa mở đăng ký"}
+                    {availableSeats === 0
+                      ? "Đã hết chỗ"
+                      : hasRegistered
+                        ? "Đã đăng ký"
+                        : "Chưa mở đăng ký"}
                   </Button>
                 )}
 
@@ -560,6 +616,155 @@ export default function StudentEventDetailPage() {
         </div>
       </div>
     </div>
+
+    {/* Seat modal (grid chọn ghế) */}
+    {isSeatGridOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2 md:px-4">
+        <div className="w-full max-w-5xl rounded-xl bg-background shadow-2xl border">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="font-semibold text-lg">Chọn ghế</div>
+            <button
+              onClick={closeSeatModal}
+              className="p-1 rounded-full hover:bg-muted transition"
+              aria-label="Close seat grid"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-3 px-4 py-4 text-sm md:px-6 md:py-5">
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded bg-emerald-200 border border-emerald-300" /> Available
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded bg-amber-200 border border-amber-300" /> Reserved
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded bg-rose-200 border border-rose-300" /> Occupied
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded bg-slate-200 border border-slate-300" /> Blocked
+              </div>
+            </div>
+
+            {/* Seat grid */}
+            <div className="space-y-2 rounded-lg border bg-muted/30 p-3 md:p-4 max-h-[75vh] overflow-auto overflow-x-auto">
+              <div className="space-y-2 min-w-[700px]">
+                {groupedSeats.map(({ row, seats: rowSeats }) => (
+                  <div
+                    key={row}
+                    className="grid items-center gap-2"
+                    style={{ gridTemplateColumns: `auto repeat(${maxSeatsPerRow || 1}, minmax(42px, 1fr))` }}
+                  >
+                    <span className="text-sm font-semibold text-muted-foreground text-right pr-1">{row}</span>
+                    {rowSeats.map((seat) => {
+                      const isSelected = selectedSeatId === seat.seatId
+                      const base =
+                        seat.status === "available"
+                          ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-200"
+                          : seat.status === "reserved"
+                            ? "bg-amber-100 text-amber-800 border-amber-200 cursor-not-allowed"
+                            : seat.status === "occupied"
+                              ? "bg-rose-100 text-rose-800 border-rose-200 cursor-not-allowed"
+                              : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"
+
+                      return (
+                        <button
+                          key={seat.seatId}
+                          type="button"
+                          onClick={() => {
+                            if (seat.status !== "available") return
+                            setSelectedSeatId(isSelected ? "" : seat.seatId)
+                          }}
+                          className={`h-9 w-10 rounded border text-xs font-semibold transition ${
+                            isSelected ? "ring-2 ring-primary ring-offset-2" : ""
+                          } ${base}`}
+                          disabled={seat.status !== "available"}
+                          title={`${seat.seatNumber} - ${seat.status}`}
+                        >
+                          {seat.seatNumber}
+                        </button>
+                      )
+                    })}
+                    {/* Fillers to align columns */}
+                    {Array.from({ length: Math.max(0, maxSeatsPerRow - rowSeats.length) }).map((_, idx) => (
+                      <div key={`filler-${row}-${idx}`} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              {selectedSeatId
+                ? `Đã chọn: ${seats.find((s) => s.seatId === selectedSeatId)?.seatNumber}`
+                : "Nếu không chọn, hệ thống sẽ tự động chọn ghế trống cho bạn."}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t px-4 py-3">
+            <Button variant="outline" onClick={closeSeatModal}>
+              Đóng
+            </Button>
+            <Button onClick={closeSeatModal}>Xong</Button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* QR Code modal */}
+    {qrModalUrl && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="w-full max-w-md rounded-xl bg-background shadow-2xl border">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="font-semibold text-lg">QR Code vé</div>
+            <button
+              onClick={() => {
+                setQrModalUrl("")
+                setQrTicketCode("")
+              }}
+              className="p-1 rounded-full hover:bg-muted transition"
+              aria-label="Close QR modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="px-4 py-5 space-y-3 text-center">
+            <div className="text-sm text-muted-foreground">Mã vé</div>
+            <div className="font-semibold text-lg break-all">{qrTicketCode}</div>
+            <div className="flex justify-center">
+              <img
+                src={qrModalUrl}
+                alt="QR Code"
+                className="h-64 w-64 rounded-lg border bg-white p-3 object-contain"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quét QR để check-in. Bạn có thể lưu ảnh QR này.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 border-t px-4 py-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQrModalUrl("")
+                setQrTicketCode("")
+              }}
+            >
+              Đóng
+            </Button>
+            <Button asChild>
+              <a href={qrModalUrl} download={`ticket-${qrTicketCode}.png`} target="_blank" rel="noopener noreferrer">
+                Tải QR
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

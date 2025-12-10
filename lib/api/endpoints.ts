@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     CANCEL_REGISTRATION: (eventId: string) => `/api/Events/${eventId}/cancel-registration`,
     STATS: (id: string) => `/api/Events/${id}/stats`,
     ATTENDANCE: (id: string) => `/api/Events/${id}/attendance`,
+    PUBLISH: (id: string) => `/api/Events/${id}/publish`,
   },
 
   // ========== Tickets ==========

@@ -267,19 +267,23 @@ function EventManagementCard({
                 Xem chi tiết
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/organizer/events/${event.eventId}/edit`} className="cursor-pointer">
-              <Edit className="h-4 w-4 mr-2" />
-                Chỉnh sửa
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-destructive focus:text-destructive cursor-pointer"
-              onClick={() => onDelete(event.eventId, event.title)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa
-            </DropdownMenuItem>
+            {event.status === "draft" && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href={`/organizer/events/${event.eventId}/edit`} className="cursor-pointer">
+                  <Edit className="h-4 w-4 mr-2" />
+                    Chỉnh sửa
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                  onClick={() => onDelete(event.eventId, event.title)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Xóa
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

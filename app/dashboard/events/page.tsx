@@ -239,7 +239,7 @@ function EventCard({
 
         <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
           <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300">
-            Xem chi tiết
+            Đăng ký ngay
           </Button>
         </Link>
       </CardContent>
