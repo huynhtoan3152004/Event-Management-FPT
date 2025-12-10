@@ -1,34 +1,77 @@
 /* ============================================
-   Events Page
-   List all events with filtering options
-   ============================================ */
+   Events Page (LIVE API)
+   List all published events with filtering
+============================================ */
 
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Header } from "@/components/shared/header"
-import { Footer } from "@/components/shared/footer"
-import { EventCard } from "@/components/landing/event-card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Search, Filter } from "lucide-react"
-import { MOCK_EVENTS } from "@/lib/constants"
-import { useFadeInOnScroll } from "@/hooks/use-gsap"
+import { useEffect, useState } from "react";
+import { Header } from "@/components/shared/header";
+import { Footer } from "@/components/shared/footer";
+import { EventCard } from "@/components/landing/event-card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Search, Filter } from "lucide-react";
+import { useFadeInOnScroll } from "@/hooks/use-gsap";
+import { eventService, EventListItem } from "@/lib/services/event.service";
+import { toast } from "react-toastify";
 
-const categories = ["Tất cả", "Technology", "Culture", "Business", "Sports", "Arts"]
+const categories = [
+  "Tất cả"
+];
 
 export default function EventsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả")
-  const sectionRef = useFadeInOnScroll<HTMLDivElement>()
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [events, setEvents] = useState<EventListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const sectionRef = useFadeInOnScroll<HTMLDivElement>();
 
-  // Filter events based on search and category
-  const filteredEvents = MOCK_EVENTS.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === "Tất cả" || event.clubName.includes(selectedCategory)
-    return matchesSearch && matchesCategory
-  })
+  /* -----------------------------------------
+       FETCH EVENTS FROM API
+  ----------------------------------------- */
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      const response = await eventService.getAllEvents({
+        pageNumber: 1,
+        pageSize: 200,
+        status: "published", // chỉ show event đã publish
+      });
+
+      if (response.success && Array.isArray(response.data)) {
+        setEvents(response.data);
+      } else {
+        toast.error("Không tải được danh sách sự kiện");
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      toast.error("Lỗi tải sự kiện");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  /* -----------------------------------------
+       FILTER EVENTS
+  ----------------------------------------- */
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "Tất cả" ||
+      (event.tags &&
+        event.tags.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <main className="min-h-screen">
@@ -38,13 +81,15 @@ export default function EventsPage() {
         <div className="container mx-auto px-4">
           {/* Page Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Khám Phá Sự Kiện</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">
+              Khám Phá Sự Kiện
+            </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Tìm kiếm và đăng ký tham gia các sự kiện hấp dẫn tại FPTU
             </p>
           </div>
 
-          {/* Search and Filter */}
+          {/* Search + Filter */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -55,10 +100,7 @@ export default function EventsPage() {
                 className="pl-10 rounded-full"
               />
             </div>
-            <Button variant="outline" className="rounded-full bg-transparent">
-              <Filter className="h-4 w-4 mr-2" />
-              Bộ lọc
-            </Button>
+            
           </div>
 
           {/* Category Tags */}
@@ -76,16 +118,31 @@ export default function EventsPage() {
           </div>
 
           {/* Events Grid */}
-          <div ref={sectionRef} className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+          <div
+            ref={sectionRef}
+            className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            {!isLoading &&
+              filteredEvents.map((event) => (
+                <EventCard key={event.eventId} event={event} />
+              ))}
+
+            {/* Skeleton loading */}
+            {isLoading &&
+              [...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-full h-64 bg-muted animate-pulse rounded-lg"
+                />
+              ))}
           </div>
 
           {/* Empty State */}
-          {filteredEvents.length === 0 && (
+          {!isLoading && filteredEvents.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Không tìm thấy sự kiện nào phù hợp.</p>
+              <p className="text-muted-foreground">
+                Không tìm thấy sự kiện nào phù hợp.
+              </p>
             </div>
           )}
         </div>
@@ -93,5 +150,5 @@ export default function EventsPage() {
 
       <Footer />
     </main>
-  )
+  );
 }

@@ -119,11 +119,7 @@ export default function OrganizerSpeakersPage() {
       }
     }
 
-    if (formData.phone) {
-      if (!/^[0-9]+$/.test(formData.phone)) {
-        errors.push("Phone must contain only numbers.");
-      }
-    }
+   
 
     if (errors.length > 0) {
       errors.forEach((err) => toast.error(err));

@@ -75,9 +75,6 @@ export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/organizer/settings">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link href="/organizer/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

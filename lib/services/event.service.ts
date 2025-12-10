@@ -24,23 +24,24 @@ export interface UpdateEventRequest {
 }
 
 export interface EventListItem {
-  eventId: string
-  title: string
-  description?: string
-  date: string
-  startTime: string
-  endTime: string
-  location?: string
-  imageUrl?: string
-  status: string
-  totalSeats: number
-  registeredCount: number
-  availableSeats?: number
-  clubName?: string
-  registrationStart?: string
-  registrationEnd?: string
-  createdAt: string
-  organizerId?: string
+  eventId: string;
+  title: string;
+  description?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  imageUrl?: string;
+  status: string;
+  totalSeats: number;
+  registeredCount: number;
+  availableSeats?: number;
+  clubName?: string;
+  registrationStart?: string;
+  registrationEnd?: string;
+  createdAt: string;
+  organizerId?: string;
+  tags?: string;
 }
 
 export interface EventFilterParams {
