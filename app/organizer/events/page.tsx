@@ -38,6 +38,7 @@ export default function OrganizerEventsPage() {
         organizerId: user.userId, // Chỉ lấy events của organizer hiện tại
         pageNumber: 1,
         pageSize: 100, // Lấy nhiều để hiển thị tất cả
+        status: activeTab === "all" ? undefined : activeTab, // Filter theo status
       })
       
       if (response.success && response.data) {
@@ -53,7 +54,7 @@ export default function OrganizerEventsPage() {
 
   useEffect(() => {
     fetchEvents()
-  }, [user?.userId])
+  }, [user?.userId, activeTab])
 
   // Handle delete event
   const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
@@ -81,27 +82,10 @@ export default function OrganizerEventsPage() {
     }
   }
 
-  // Filter events theo search query và tab
+  // Filter events theo search query
   const filteredEvents = events.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          event.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    if (activeTab === "all") return matchesSearch
-    
-    const now = new Date()
-    const eventDate = new Date(`${event.date}T${event.startTime}`)
-    
-    if (activeTab === "upcoming") {
-      return matchesSearch && eventDate > now && event.status !== "cancelled" && event.status !== "completed"
-    }
-    if (activeTab === "ongoing") {
-      const eventEnd = new Date(`${event.date}T${event.endTime}`)
-      return matchesSearch && eventDate <= now && eventEnd >= now && event.status === "published"
-    }
-    if (activeTab === "past") {
-      const eventEnd = new Date(`${event.date}T${event.endTime}`)
-      return matchesSearch && (eventEnd < now || event.status === "completed")
-    }
     
     return matchesSearch
   })
@@ -122,7 +106,7 @@ export default function OrganizerEventsPage() {
         </div>
 
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
           <div className="flex gap-2 flex-1 max-w-md">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
@@ -130,10 +114,10 @@ export default function OrganizerEventsPage() {
                 placeholder="Tìm kiếm sự kiện..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11 border-2 focus:border-primary transition-colors"
+                className="pl-10 h-11 bg-background shadow-sm focus:shadow-md transition-shadow"
               />
             </div>
-            <Button variant="outline" className="h-11 border-2 hover:bg-muted transition-colors">
+            <Button variant="outline" className="h-11 shadow-sm hover:shadow-md transition-shadow">
               <Filter className="h-4 w-4" />
             </Button>
           </div>
@@ -148,30 +132,36 @@ export default function OrganizerEventsPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex bg-muted/50 p-1 rounded-lg border-2">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex bg-muted/30 p-1 rounded-lg shadow-sm">
             <TabsTrigger 
               value="all" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-300"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
               Tất cả
             </TabsTrigger>
             <TabsTrigger 
-              value="upcoming"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-300"
+              value="draft"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
-              Sắp tới
+              Bản nháp
             </TabsTrigger>
             <TabsTrigger 
-              value="ongoing"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-300"
+              value="published"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
-              Đang diễn ra
+              Đã xuất bản
             </TabsTrigger>
             <TabsTrigger 
-              value="past"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-300"
+              value="completed"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
-              Đã qua
+              Hoàn thành
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cancelled"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
+            >
+              Đã hủy
             </TabsTrigger>
           </TabsList>
 
@@ -244,7 +234,7 @@ function EventManagementCard({
   const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0
 
   return (
-    <Card className="overflow-hidden border-2 hover:shadow-xl hover:border-primary/50 transition-all duration-300 group flex flex-col h-full !p-0 !gap-0">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full !p-0 !gap-0 shadow-md">
       <div className="relative w-full h-44 overflow-hidden flex-shrink-0">
         <Image 
           src={event.imageUrl || "/placeholder.svg"} 
@@ -337,7 +327,7 @@ function EventManagementCard({
         )}
 
         <Link href={`/organizer/events/${event.eventId}`} className="block mt-auto">
-          <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300">
+          <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300">
             Quản lý sự kiện
           </Button>
         </Link>
