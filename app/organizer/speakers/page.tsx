@@ -1,19 +1,28 @@
 /* ============================================
    Organizer Speakers Page - CRUD Speakers
-   Manage speakers for events
-   ============================================ */
+============================================ */
 
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState, useEffect } from "react";
 
-import { useState } from "react"
-import { Plus, Search, Edit, Trash2, Mail, Linkedin, MoreVertical } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Mail,
+  Linkedin,
+  MoreVertical,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import {
   Dialog,
   DialogContent,
@@ -22,8 +31,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dialog";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,87 +49,288 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { OrganizerHeader } from "@/components/organizer/header"
-import { MOCK_SPEAKERS } from "@/lib/constants"
-import type { Speaker } from "@/types"
+} from "@/components/ui/alert-dialog";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { OrganizerHeader } from "@/components/organizer/header";
+
+import { toast } from "react-toastify";
+import { speakerService } from "@/lib/services/speaker.service";
+
+/* ============================================
+   Speaker Type
+============================================ */
+export interface Speaker {
+  id: string;
+  name: string;
+  title?: string;
+  company?: string;
+  bio?: string;
+  email?: string;
+  linkedIn?: string;
+  avatar?: string;
+  phone?: string | null;
+}
+
+/* ============================================
+   MAIN PAGE COMPONENT
+============================================ */
 
 export default function OrganizerSpeakersPage() {
-  const [speakers, setSpeakers] = useState<Speaker[]>(MOCK_SPEAKERS)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null)
-  const [deletingSpeaker, setDeletingSpeaker] = useState<Speaker | null>(null)
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null);
+  const [deletingSpeaker, setDeletingSpeaker] = useState<Speaker | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState<Partial<Speaker>>({
-    name: "",
-    title: "",
-    company: "",
-    bio: "",
-    email: "",
-    linkedIn: "",
-  })
+  const [formData, setFormData] = useState<Partial<Speaker>>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ⬇️ THÊM validateForm() ngay dưới đây
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    if (!formData.name || formData.name.trim() === "") {
+      errors.push("Name is required.");
+    }
+
+    if (!formData.title || formData.title.trim() === "") {
+      errors.push("Title is required.");
+    }
+
+    if (formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        errors.push("Invalid email format.");
+      }
+    }
+
+    if (formData.linkedIn) {
+      try {
+        new URL(formData.linkedIn);
+      } catch {
+        errors.push("LinkedIn must be a valid URL.");
+      }
+    }
+
+    if (formData.phone) {
+      if (!/^[0-9]+$/.test(formData.phone)) {
+        errors.push("Phone must contain only numbers.");
+      }
+    }
+
+    if (errors.length > 0) {
+      errors.forEach((err) => toast.error(err));
+      return false;
+    }
+
+    return true;
+  };
+  /* ============================================
+     GET SPEAKERS
+  ============================================ */
+  useEffect(() => {
+    const fetchSpeakers = async () => {
+      try {
+        setIsLoading(true);
+        const res = await speakerService.getAll();
+
+        if (res.success && res.data) {
+          const mapped = res.data.map((sp: any) => ({
+            id: sp.speakerId,
+            name: sp.name,
+            title: sp.title,
+            company: sp.company,
+            bio: sp.bio,
+            email: sp.email,
+            linkedIn: sp.linkedinUrl,
+            avatar: sp.avatarUrl || "/placeholder.svg",
+            phone: sp.phone,
+          }));
+
+          setSpeakers(mapped);
+        } else {
+          toast.error("Không thể lấy danh sách speakers");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Lỗi khi tải speakers.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSpeakers();
+  }, []);
+
+  /* ============================================
+     FILTER SEARCH
+  ============================================ */
   const filteredSpeakers = speakers.filter(
     (speaker) =>
       speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      speaker.company?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      speaker.company?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  /* ============================================
+     CREATE (Local Only)
+  ============================================ */
+  /* ============================================
+   CREATE (API)
+============================================ */
+  const handleCreate = async () => {
+    if (!validateForm()) return;
+  try {
+    setIsSubmitting(true);
 
-  // Handle create
-  const handleCreate = () => {
-    const newSpeaker: Speaker = {
-      id: `speaker-${Date.now()}`,
+    const payload = {
       name: formData.name || "",
-      title: formData.title || "",
+      title: formData.title,
       company: formData.company,
       bio: formData.bio,
       email: formData.email,
       linkedIn: formData.linkedIn,
-      avatar: "/placeholder.svg?key=new-speaker",
+      phone: formData.phone,
+      imageFile: selectedImage || null,
+    };
+
+    const res = await speakerService.create(payload);
+
+    if (res.success) {
+      toast.success("Created speaker successfully!");
+
+      // 🔥 Map speaker mới từ API trả về
+      const newSpeaker: Speaker = {
+        id: res.data.speakerId,
+        name: res.data.name,
+        title: res.data.title,
+        company: res.data.company,
+        bio: res.data.bio,
+        email: res.data.email,
+        linkedIn: res.data.linkedinUrl,
+        avatar: res.data.avatarUrl || "/placeholder.svg",
+        phone: res.data.phone,
+      };
+
+      setSpeakers((prev) => [newSpeaker, ...prev]);
+
+      // Reset form
+      setFormData({});
+      setPreviewImage(null);
+      setSelectedImage(null);
+      setIsCreateOpen(false);
+    } else {
+      toast.error(res.message || "Failed to create speaker.");
     }
-    setSpeakers([...speakers, newSpeaker])
-    setFormData({ name: "", title: "", company: "", bio: "", email: "", linkedIn: "" })
-    setIsCreateOpen(false)
+  } catch (err) {
+    console.error(err);
+    toast.error("Error while creating speaker.");
+  } finally {
+    setIsSubmitting(false);
   }
+};
 
-  // Handle edit
-  const handleEdit = () => {
-    if (!editingSpeaker) return
-    setSpeakers(speakers.map((s) => (s.id === editingSpeaker.id ? { ...s, ...formData } : s)))
-    setEditingSpeaker(null)
-    setFormData({ name: "", title: "", company: "", bio: "", email: "", linkedIn: "" })
-  }
 
-  // Handle delete
-  const handleDelete = () => {
-    if (!deletingSpeaker) return
-    setSpeakers(speakers.filter((s) => s.id !== deletingSpeaker.id))
-    setDeletingSpeaker(null)
-  }
+  /* ============================================
+     UPDATE (API)
+  ============================================ */
+  const handleEdit = async () => {
+      if (!validateForm()) return;
+    if (!editingSpeaker) return;
 
-  // Open edit dialog
+    try {
+      setIsSubmitting(true);
+
+      const payload = {
+        name: formData.name || "",
+        title: formData.title,
+        company: formData.company,
+        bio: formData.bio,
+        email: formData.email,
+        linkedIn: formData.linkedIn,
+        phone: formData.phone,
+        imageFile: selectedImage || null,
+      };
+
+      const res = await speakerService.update(editingSpeaker.id, payload);
+
+      if (res.success) {
+        toast.success("Updated speaker successfully!");
+
+        setSpeakers((prev) =>
+          prev.map((s) =>
+            s.id === editingSpeaker.id
+              ? {
+                  ...s,
+                  ...formData,
+                  avatar: previewImage || s.avatar,
+                }
+              : s
+          )
+        );
+
+        setEditingSpeaker(null);
+        setFormData({});
+        setPreviewImage(null);
+        setSelectedImage(null);
+      } else {
+        toast.error(res.message || "Failed to update.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error while updating.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /* ============================================
+     DELETE (API)
+  ============================================ */
+  const handleDelete = async () => {
+    if (!deletingSpeaker) return;
+
+    try {
+      const res = await speakerService.delete(deletingSpeaker.id);
+
+      if (res.success) {
+        setSpeakers((prev) => prev.filter((s) => s.id !== deletingSpeaker.id));
+        toast.success("Deleted speaker successfully!");
+      } else {
+        toast.error(res.message || "Failed to delete.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error while deleting.");
+    }
+
+    setDeletingSpeaker(null);
+  };
+
+  /* ============================================
+     OPEN EDIT DIALOG
+  ============================================ */
   const openEditDialog = (speaker: Speaker) => {
-    setFormData({
-      name: speaker.name,
-      title: speaker.title,
-      company: speaker.company,
-      bio: speaker.bio,
-      email: speaker.email,
-      linkedIn: speaker.linkedIn,
-    })
-    setEditingSpeaker(speaker)
-  }
+    setFormData(speaker);
+    setPreviewImage(speaker.avatar || null);
+    setSelectedImage(null);
+    setEditingSpeaker(speaker);
+  };
 
+  /* ============================================
+     UI RENDER
+  ============================================ */
   return (
     <>
       <OrganizerHeader title="Speakers" />
 
       <main className="flex-1 p-4 lg:p-6 space-y-6">
-        {/* Actions Bar */}
+        {/* Header Tools */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="relative max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -125,6 +342,7 @@ export default function OrganizerSpeakersPage() {
             />
           </div>
 
+          {/* CREATE BUTTON */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full">
@@ -132,120 +350,182 @@ export default function OrganizerSpeakersPage() {
                 Add Speaker
               </Button>
             </DialogTrigger>
+
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Speaker</DialogTitle>
-                <DialogDescription>Add a new speaker to your speaker pool for events.</DialogDescription>
               </DialogHeader>
-              <SpeakerForm formData={formData} setFormData={setFormData} />
+
+              <SpeakerForm
+                formData={formData}
+                setFormData={setFormData}
+                selectedImage={selectedImage}
+                setSelectedImage={setSelectedImage}
+                previewImage={previewImage}
+                setPreviewImage={setPreviewImage}
+              />
+
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={!formData.name || !formData.title}>
-                  Add Speaker
+                <Button
+                  disabled={!formData.name || isSubmitting}
+                  onClick={handleCreate}
+                >
+                  {isSubmitting ? "Creating..." : "Add Speaker"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Speakers Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSpeakers.map((speaker) => (
-            <Card key={speaker.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={speaker.avatar || "/placeholder.svg"} alt={speaker.name} />
-                    <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-foreground">{speaker.name}</h3>
-                        <p className="text-sm text-muted-foreground">{speaker.title}</p>
-                        {speaker.company && (
-                          <Badge variant="secondary" className="mt-1 text-xs">
-                            {speaker.company}
-                          </Badge>
+        {/* SPEAKERS GRID */}
+        {isLoading ? (
+          <div className="text-center text-muted-foreground py-10">
+            Loading speakers...
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSpeakers.map((speaker) => (
+              <Card
+                key={speaker.id}
+                className="hover:shadow-md transition-shadow rounded-xl p-4"
+              >
+                <CardContent className="p-0">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={speaker.avatar} />
+                      <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {speaker.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {speaker.title}
+                          </p>
+
+                          {speaker.company && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              {speaker.company}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(speaker)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeletingSpeaker(speaker)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {speaker.bio && (
+                        <p className="text-sm text-muted-foreground mt-3">
+                          {speaker.bio}
+                        </p>
+                      )}
+
+                      <div className="flex gap-3 mt-4">
+                        {speaker.email && (
+                          <a href={`mailto:${speaker.email}`}>
+                            <Mail className="h-5 w-5 opacity-80 hover:opacity-100" />
+                          </a>
+                        )}
+
+                        {speaker.linkedIn && (
+                          <a href={speaker.linkedIn} target="_blank">
+                            <Linkedin className="h-5 w-5 opacity-80 hover:opacity-100" />
+                          </a>
                         )}
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(speaker)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeletingSpeaker(speaker)} className="text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    {speaker.bio && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{speaker.bio}</p>}
-                    <div className="flex gap-2 mt-3">
-                      {speaker.email && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                          <a href={`mailto:${speaker.email}`}>
-                            <Mail className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
-                      )}
-                      {speaker.linkedIn && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                          <a href={speaker.linkedIn} target="_blank" rel="noopener noreferrer">
-                            <Linkedin className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
-                      )}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredSpeakers.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">No speakers found. Add your first speaker!</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {/* Edit Dialog */}
-        <Dialog open={!!editingSpeaker} onOpenChange={() => setEditingSpeaker(null)}>
+        {/* NO RESULT */}
+        {!isLoading && filteredSpeakers.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground">
+            No speakers found.
+          </div>
+        )}
+
+        {/* EDIT DIALOG */}
+        <Dialog
+          open={!!editingSpeaker}
+          onOpenChange={() => setEditingSpeaker(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Speaker</DialogTitle>
-              <DialogDescription>Update speaker information.</DialogDescription>
             </DialogHeader>
-            <SpeakerForm formData={formData} setFormData={setFormData} />
+
+            <SpeakerForm
+              formData={formData}
+              setFormData={setFormData}
+              selectedImage={selectedImage}
+              setSelectedImage={setSelectedImage}
+              previewImage={previewImage}
+              setPreviewImage={setPreviewImage}
+            />
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingSpeaker(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleEdit}>Save Changes</Button>
+              <Button disabled={isSubmitting} onClick={handleEdit}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
-        <AlertDialog open={!!deletingSpeaker} onOpenChange={() => setDeletingSpeaker(null)}>
+        {/* DELETE CONFIRM */}
+        <AlertDialog
+          open={!!deletingSpeaker}
+          onOpenChange={() => setDeletingSpeaker(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Speaker?</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {deletingSpeaker?.name}? This action cannot be undone.
+                Are you sure you want to delete "{deletingSpeaker?.name}"?
               </AlertDialogDescription>
             </AlertDialogHeader>
+
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              <AlertDialogAction
+                className="bg-destructive"
+                onClick={handleDelete}
+              >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -253,77 +533,100 @@ export default function OrganizerSpeakersPage() {
         </AlertDialog>
       </main>
     </>
-  )
+  );
 }
 
-// Speaker Form Component
+/* ============================================
+   SPEAKER FORM COMPONENT
+============================================ */
+
 function SpeakerForm({
   formData,
   setFormData,
-}: {
-  formData: Partial<Speaker>
-  setFormData: React.Dispatch<React.SetStateAction<Partial<Speaker>>>
-}) {
+  selectedImage,
+  setSelectedImage,
+  previewImage,
+  setPreviewImage,
+}: any) {
   return (
     <div className="grid gap-4 py-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Name *</Label>
+      {/* Avatar */}
+      <div className="flex flex-col items-center gap-3">
+        <Avatar className="h-20 w-20">
+          <AvatarImage
+            src={previewImage || formData.avatar || "/placeholder.svg"}
+          />
+          <AvatarFallback>{formData.name?.charAt(0)}</AvatarFallback>
+        </Avatar>
+
         <Input
-          id="name"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setSelectedImage(file);
+              setPreviewImage(URL.createObjectURL(file));
+            }
+          }}
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <Label>Name *</Label>
+        <Input
           value={formData.name || ""}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Dr. Nguyen Van A"
         />
       </div>
+
       <div className="grid gap-2">
-        <Label htmlFor="title">Title *</Label>
+        <Label>Title *</Label>
         <Input
-          id="title"
           value={formData.title || ""}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          placeholder="AI Research Lead"
         />
       </div>
+
       <div className="grid gap-2">
-        <Label htmlFor="company">Company</Label>
+        <Label>Company</Label>
         <Input
-          id="company"
           value={formData.company || ""}
-          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-          placeholder="FPT Software"
+          onChange={(e) =>
+            setFormData({ ...formData, company: e.target.value })
+          }
         />
       </div>
+
       <div className="grid gap-2">
-        <Label htmlFor="bio">Bio</Label>
+        <Label>Bio</Label>
         <Textarea
-          id="bio"
           value={formData.bio || ""}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-          placeholder="Brief biography..."
-          rows={3}
         />
       </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label>Email</Label>
           <Input
-            id="email"
-            type="email"
             value={formData.email || ""}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="email@example.com"
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
           />
         </div>
+
         <div className="grid gap-2">
-          <Label htmlFor="linkedin">LinkedIn</Label>
+          <Label>LinkedIn</Label>
           <Input
-            id="linkedin"
             value={formData.linkedIn || ""}
-            onChange={(e) => setFormData({ ...formData, linkedIn: e.target.value })}
-            placeholder="https://linkedin.com/in/..."
+            onChange={(e) =>
+              setFormData({ ...formData, linkedIn: e.target.value })
+            }
           />
         </div>
       </div>
     </div>
-  )
+  );
 }
