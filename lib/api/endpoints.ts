@@ -6,23 +6,24 @@
 export const API_ENDPOINTS = {
   // ========== Authentication ==========
   AUTH: {
-    LOGIN: '/api/Auth/login',
-    LOGOUT: '/api/Auth/logout',
-    REGISTER: '/api/Auth/register',
-    REFRESH_TOKEN: '/api/Auth/refresh',
-    ME: '/api/Auth/me',
-    CHANGE_PASSWORD: '/api/Auth/change-password',
+    LOGIN: "/api/Auth/login",
+    LOGOUT: "/api/Auth/logout",
+    REGISTER: "/api/Auth/register",
+    REFRESH_TOKEN: "/api/Auth/refresh",
+    ME: "/api/Auth/me",
+    CHANGE_PASSWORD: "/api/Auth/change-password",
   },
 
   // ========== Events ==========
   EVENTS: {
-    BASE: '/api/Events',
+    BASE: "/api/Events",
     BY_ID: (id: string) => `/api/Events/${id}`,
-    CREATE: '/api/Events',
+    CREATE: "/api/Events",
     UPDATE: (id: string) => `/api/Events/${id}`,
     DELETE: (id: string) => `/api/Events/${id}`,
     REGISTER: (eventId: string) => `/api/Events/${eventId}/register`,
-    CANCEL_REGISTRATION: (eventId: string) => `/api/Events/${eventId}/cancel-registration`,
+    CANCEL_REGISTRATION: (eventId: string) =>
+      `/api/Events/${eventId}/cancel-registration`,
     STATS: (id: string) => `/api/Events/${id}/stats`,
     ATTENDANCE: (id: string) => `/api/Events/${id}/attendance`,
     PUBLISH: (id: string) => `/api/Events/${id}/publish`,
@@ -30,9 +31,9 @@ export const API_ENDPOINTS = {
 
   // ========== Tickets ==========
   TICKETS: {
-    BASE: '/tickets',
+    BASE: "/tickets",
     BY_ID: (id: string) => `/tickets/${id}`,
-    MY_TICKETS: '/tickets/my',
+    MY_TICKETS: "/tickets/my",
     CANCEL: (id: string) => `/tickets/${id}/cancel`,
     DOWNLOAD: (id: string) => `/tickets/${id}/download`,
     QR_CODE: (id: string) => `/tickets/${id}/qr`,
@@ -40,31 +41,37 @@ export const API_ENDPOINTS = {
 
   // ========== Speakers ==========
   SPEAKERS: {
-    BASE: '/api/Speakers',
+    BASE: "/api/Speakers",
     BY_ID: (id: string) => `/api/Speakers/${id}`,
-    CREATE: '/api/Speakers',
+    CREATE: "/api/Speakers",
     UPDATE: (id: string) => `/api/Speakers/${id}`,
     DELETE: (id: string) => `/api/Speakers/${id}`,
     EVENTS: (id: string) => `/api/Speakers/${id}/events`,
   },
 
-  // ========== Venues ==========
+  // ========== Venues (Halls) ==========
   VENUES: {
-    BASE: '/venues',
-    BY_ID: (id: string) => `/venues/${id}`,
-    CREATE: '/venues',
-    UPDATE: (id: string) => `/venues/${id}`,
-    DELETE: (id: string) => `/venues/${id}`,
-    AVAILABLE: '/venues/available',
+    BASE: "/api/Halls",
+    BY_ID: (id: string) => `/api/Halls/${id}`,
+    CREATE: "/api/Halls",
+    UPDATE: (id: string) => `/api/Halls/${id}`,
+    DELETE: (id: string) => `/api/Halls/${id}`,
+
+    // Seats in Hall
+    SEATS: (id: string) => `/api/Halls/${id}/seats`,
+    GENERATE_SEATS: (id: string) => `/api/Halls/${id}/seats/generate`,
+
+    // Availability
+    AVAILABILITY: (id: string) => `/api/Halls/${id}/availability`,
   },
 
   // ========== Seats ==========
   SEATS: {
-    BASE: '/seats',
+    BASE: "/seats",
     BY_VENUE: (venueId: string) => `/seats/venue/${venueId}`,
     BY_EVENT: (eventId: string) => `/seats/event/${eventId}`,
     UPDATE_STATUS: (seatId: string) => `/seats/${seatId}/status`,
-    BULK_UPDATE: '/seats/bulk-update',
+    BULK_UPDATE: "/seats/bulk-update",
   },
 
   // ========== Check-in ==========
@@ -78,17 +85,17 @@ export const API_ENDPOINTS = {
 
   // ========== Attendance ==========
   ATTENDANCE: {
-    BASE: '/attendance',
-    MY_ATTENDANCE: '/attendance/my',
+    BASE: "/attendance",
+    MY_ATTENDANCE: "/attendance/my",
     BY_EVENT: (eventId: string) => `/attendance/event/${eventId}`,
-    STATS: '/attendance/stats',
+    STATS: "/attendance/stats",
   },
 
   // ========== Reports ==========
   REPORTS: {
-    BASE: '/reports',
-    DASHBOARD: '/reports/dashboard',
-    EVENTS: '/reports/events',
+    BASE: "/reports",
+    DASHBOARD: "/reports/dashboard",
+    EVENTS: "/reports/events",
     ATTENDANCE: (eventId: string) => `/reports/attendance/${eventId}`,
     EXPORT_CSV: (eventId: string) => `/reports/export/csv/${eventId}`,
     EXPORT_PDF: (eventId: string) => `/reports/export/pdf/${eventId}`,
@@ -97,19 +104,19 @@ export const API_ENDPOINTS = {
 
   // ========== Users ==========
   USERS: {
-    BASE: '/users',
+    BASE: "/users",
     BY_ID: (id: string) => `/users/${id}`,
-    PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/profile',
-    AVATAR: '/users/avatar',
+    PROFILE: "/users/profile",
+    UPDATE_PROFILE: "/users/profile",
+    AVATAR: "/users/avatar",
   },
 
   // ========== Upload ==========
   UPLOAD: {
-    IMAGE: '/upload/image',
-    DOCUMENT: '/upload/document',
+    IMAGE: "/upload/image",
+    DOCUMENT: "/upload/document",
   },
-} as const
+} as const;
 
 // Helper function để build query string
 export const buildQueryString = (params: Record<string, any>): string => {
