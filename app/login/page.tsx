@@ -3,36 +3,48 @@
    Authentication page for all user types
    ============================================ */
 
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react"
-import { useLogin } from "@/hooks/use-auth"
+import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
+import { useLogin } from "@/hooks/use-auth";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const loginMutation = useLogin()
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // 🔥 LẤY redirect từ URL
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || null;
+
+  const loginMutation = useLogin();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    // Validate
-    if (!email || !password) {
-      return
-    }
+    if (!email || !password) return;
 
-    // Call API
-    loginMutation.mutate({ email, password })
-  }
+    // 🔥 Gửi redirectUrl xuống hook useLogin
+    loginMutation.mutate(
+      { email, password },
+      { meta: { redirectUrl: redirect } }
+    );
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-accent/30 via-background to-secondary/20 flex items-center justify-center p-4">
@@ -47,17 +59,18 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          {/* Logo */}
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
             <span className="text-primary-foreground font-bold text-xl">F</span>
           </div>
+
           <CardTitle className="text-2xl">Đăng nhập</CardTitle>
-          <CardDescription>Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.</CardDescription>
+          <CardDescription>
+            Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -73,7 +86,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password">Mật khẩu</Label>
               <div className="relative">
@@ -91,19 +103,24 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-right">
-              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
                 Quên mật khẩu?
               </Link>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full rounded-full"
@@ -115,7 +132,7 @@ export default function LoginPage() {
                   Đang đăng nhập...
                 </>
               ) : (
-                'Đăng nhập'
+                "Đăng nhập"
               )}
             </Button>
           </form>
@@ -130,15 +147,17 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Register Link */}
           <p className="text-center text-sm text-muted-foreground">
             Chưa có tài khoản?{" "}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            <Link
+              href="/register"
+              className="text-primary hover:underline font-medium"
+            >
               Đăng ký ngay
             </Link>
           </p>
         </CardContent>
       </Card>
     </main>
-  )
+  );
 }
