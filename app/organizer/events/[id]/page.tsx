@@ -20,7 +20,6 @@ import {
   Trash2,
   ArrowLeft,
   Loader2,
-  CheckCircle2,
   XCircle,
   AlertCircle,
   User,
@@ -43,7 +42,6 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventDetailDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isPublishing, setIsPublishing] = useState(false)
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -92,29 +90,6 @@ export default function EventDetailPage() {
       toast.error(message)
     } finally {
       setIsDeleting(false)
-    }
-  }
-
-  const handlePublish = async () => {
-    try {
-      setIsPublishing(true)
-      const response = await eventService.publishEvent(eventId)
-      if (response.success) {
-        toast.success(response.message || "Đã publish sự kiện")
-        // Refresh event to update status
-        const refreshed = await eventService.getEventById(eventId)
-        if (refreshed.success && refreshed.data) {
-          setEvent(refreshed.data)
-        }
-      } else {
-        toast.error(response.message || "Publish thất bại")
-      }
-    } catch (error: any) {
-      console.error("Error publishing event:", error)
-      const msg = error?.response?.data?.message || error?.message || "Publish thất bại. Vui lòng thử lại."
-      toast.error(msg)
-    } finally {
-      setIsPublishing(false)
     }
   }
 
@@ -202,26 +177,6 @@ export default function EventDetailPage() {
               </Button>
             </Link>
             <div className="flex gap-2 flex-wrap justify-end">
-              {event?.status === "draft" && (
-                <Button
-                  variant="default"
-                  className="gap-2"
-                  onClick={handlePublish}
-                  disabled={isPublishing}
-                >
-                  {isPublishing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Đang publish...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      Publish
-                    </>
-                  )}
-                </Button>
-              )}
               {event?.status === "draft" && (
                 <Link href={`/organizer/events/${eventId}/edit`}>
                   <Button variant="outline" className="gap-2">
