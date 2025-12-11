@@ -12,7 +12,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Rows,
   Upload,
   Users,
   LayoutGrid,
@@ -115,21 +114,6 @@ export default function EditEventPage() {
               const clubNameInput = form.querySelector<HTMLInputElement>('#clubName')
               if (clubNameInput) clubNameInput.value = data.clubName || ''
               
-              const totalSeatsInput = form.querySelector<HTMLInputElement>('#totalSeats')
-              if (totalSeatsInput) totalSeatsInput.value = String(data.totalSeats || 0)
-              
-              // Note: Backend doesn't return NumberOfRows and SeatsPerRow in EventDetailDto
-              // We need to calculate or get from event entity if available
-              // For now, we'll calculate based on totalSeats (simple approximation)
-              const rowsInput = form.querySelector<HTMLInputElement>('#rows')
-              // Try to get from eventData if available, otherwise calculate
-              const estimatedRows = data.totalSeats ? Math.ceil(Math.sqrt(data.totalSeats)) : 0
-              if (rowsInput) rowsInput.value = String(estimatedRows)
-              
-              const seatsPerRowInput = form.querySelector<HTMLInputElement>('#seatsPerRow')
-              const estimatedSeatsPerRow = estimatedRows > 0 ? Math.ceil(data.totalSeats / estimatedRows) : 0
-              if (seatsPerRowInput) seatsPerRowInput.value = String(estimatedSeatsPerRow)
-              
               const tagsInput = form.querySelector<HTMLInputElement>('#tags')
               if (tagsInput) tagsInput.value = data.tags || ''
               
@@ -222,9 +206,6 @@ export default function EditEventPage() {
         location: (formData.get("location") as string) || undefined,
         hallId: selectedHallId || undefined,
         clubName: (formData.get("clubName") as string) || undefined,
-        totalSeats: Number(formData.get("totalSeats") || 0),
-        rows: Number(formData.get("rows") || 0),
-        seatsPerRow: Number(formData.get("seatsPerRow") || 0),
         registrationStart: (formData.get("registrationStart") as string) || undefined,
         registrationEnd: (formData.get("registrationEnd") as string) || undefined,
         tags:
@@ -240,12 +221,6 @@ export default function EditEventPage() {
 
       if (!payload.title || !payload.date || !payload.startTime || !payload.endTime) {
         toast.error("Vui lòng nhập đủ Title, Date, StartTime, EndTime")
-        setIsSubmitting(false)
-        return
-      }
-
-      if (!payload.totalSeats || !payload.rows || !payload.seatsPerRow) {
-        toast.error("Vui lòng nhập TotalSeats, Rows, SeatsPerRow")
         setIsSubmitting(false)
         return
       }
@@ -366,48 +341,10 @@ export default function EditEventPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Chỗ ngồi & Vé</CardTitle>
-                <CardDescription>Thiết lập Rows, SeatsPerRow và giới hạn vé</CardDescription>
+                <CardTitle>Thời gian đăng ký & Giới hạn vé</CardTitle>
+                <CardDescription>Thiết lập thời gian đăng ký và giới hạn số vé mỗi người</CardDescription>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="totalSeats">TotalSeats *</Label>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="totalSeats"
-                      name="totalSeats"
-                      type="number"
-                      min={1}
-                      placeholder="500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rows">Rows *</Label>
-                  <div className="flex items-center gap-2">
-                    <Rows className="h-4 w-4 text-muted-foreground" />
-                    <Input id="rows" name="rows" type="number" min={1} placeholder="10" required />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="seatsPerRow">SeatsPerRow *</Label>
-                  <div className="flex items-center gap-2">
-                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="seatsPerRow"
-                      name="seatsPerRow"
-                      type="number"
-                      min={1}
-                      placeholder="50"
-                      required
-                    />
-                  </div>
-                </div>
-
+              <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="registrationStart">Registration Start</Label>
                   <Input id="registrationStart" name="registrationStart" type="datetime-local" />
@@ -598,7 +535,7 @@ export default function EditEventPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>- Title, Date, StartTime, EndTime, TotalSeats, Rows, SeatsPerRow là bắt buộc.</p>
+                  <p>- Title, Date, StartTime, EndTime là bắt buộc.</p>
                   <p>- RegistrationStart/End nên là dạng datetime-local.</p>
                   <p>- Tags nhập danh sách, phân tách dấu phẩy.</p>
                 </div>

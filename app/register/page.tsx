@@ -60,14 +60,16 @@ export default function RegisterPage() {
         Về trang chủ
       </Link>
 
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-md shadow-xl border-2">
+        <CardHeader className="text-center space-y-4 pb-6">
           {/* Logo */}
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-xl">F</span>
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+            <span className="text-primary-foreground font-bold text-2xl">F</span>
           </div>
-          <CardTitle className="text-2xl">Đăng ký</CardTitle>
-          <CardDescription>Tạo tài khoản mới để quản lý sự kiện</CardDescription>
+          <div className="space-y-2 text-center">
+            <CardTitle className="text-3xl font-bold block">Đăng ký</CardTitle>
+            <CardDescription className="text-base">Tạo tài khoản mới để quản lý sự kiện</CardDescription>
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -204,7 +206,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Login Link */}
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-muted-foreground mb-5">
             Đã có tài khoản?{" "}
             <Link href="/login" className="text-primary hover:underline font-medium">
               Đăng nhập ngay
