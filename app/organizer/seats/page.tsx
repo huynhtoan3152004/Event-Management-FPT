@@ -222,7 +222,7 @@ export default function OrganizerSeatsPage() {
               </CardTitle>
               <CardDescription>Click on a seat to view details or change status</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-6">
               {isLoadingSeats ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -243,33 +243,33 @@ export default function OrganizerSeatsPage() {
                   </div>
 
                   {/* Seats */}
-                  <div className="space-y-2 overflow-x-auto">
-                {Object.entries(seatsByRow).map(([row, rowSeats]) => (
-                  <div key={row} className="flex items-center gap-2">
-                    <span className="w-6 text-sm font-medium text-muted-foreground">{row}</span>
-                    <div className="flex gap-1">
-                      {rowSeats.map((seat) => (
-                        <button
-                          key={seat.id}
-                          onClick={() => handleSeatClick(seat)}
-                          disabled={seat.status === "blocked"}
-                          className={cn(
-                            "w-8 h-8 rounded text-xs font-medium border transition-colors",
-                            getSeatColor(seat.status),
-                            selectedSeat?.id === seat.id && "ring-2 ring-ring",
-                          )}
-                          title={`${seat.row}${seat.number} - ${seat.status}`}
-                        >
-                          {seat.number}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  <div className="space-y-2 overflow-x-auto pb-4">
+                    {Object.entries(seatsByRow).map(([row, rowSeats]) => (
+                      <div key={row} className="flex items-center gap-2">
+                        <span className="w-6 text-sm font-medium text-muted-foreground flex-shrink-0">{row}</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {rowSeats.map((seat) => (
+                            <button
+                              key={seat.id}
+                              onClick={() => handleSeatClick(seat)}
+                              disabled={seat.status === "blocked"}
+                              className={cn(
+                                "w-8 h-8 rounded text-xs font-medium border transition-colors flex-shrink-0",
+                                getSeatColor(seat.status),
+                                selectedSeat?.id === seat.id && "ring-2 ring-ring",
+                              )}
+                              title={`${seat.row}${seat.number} - ${seat.status}`}
+                            >
+                              {seat.number}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                        {/* Legend */}
-                    <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
                         <span className="text-xs">Available ({seatCounts.available})</span>
@@ -293,13 +293,13 @@ export default function OrganizerSeatsPage() {
           </Card>
 
           {/* Seat Details Panel */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-1">
             {/* Stats */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Seat Statistics</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Seats</span>
                   <span className="font-medium">{seats.length}</span>
@@ -329,7 +329,7 @@ export default function OrganizerSeatsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Seat Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 pb-6">
                   <div className="text-center py-2">
                     <p className="text-2xl font-bold">
                       {selectedSeat.row}

@@ -156,20 +156,6 @@ apiClient.interceptors.response.use(
             autoClose: 4000,
           })
       }
-    } else if (error.request) {
-      // Request được gửi nhưng không nhận được response
-      // Kiểm tra nếu là CORS error
-      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-        toast.error('Lỗi CORS: Backend không cho phép request từ frontend. Vui lòng kiểm tra cấu hình CORS trên server.', {
-          position: 'top-right',
-          autoClose: 6000,
-        })
-      } else {
-        toast.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.', {
-          position: 'top-right',
-          autoClose: 4000,
-        })
-      }
     } else {
       // Lỗi khi setup request
       toast.error('Đã xảy ra lỗi khi gửi yêu cầu.', {
