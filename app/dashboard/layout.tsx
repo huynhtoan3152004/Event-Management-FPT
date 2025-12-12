@@ -8,6 +8,7 @@ import type React from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
+import { RoleGuard } from "@/components/shared/role-guard"
 
 export default function DashboardLayout({
   children,
@@ -15,12 +16,14 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <DashboardSidebar />
-      <SidebarInset>
-        <DashboardHeader />
-        <main className="flex-1 p-4 lg:p-6 bg-muted/30">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <RoleGuard allowedRoles={["student"]}>
+      <SidebarProvider>
+        <DashboardSidebar />
+        <SidebarInset>
+          <DashboardHeader />
+          <main className="flex-1 p-4 lg:p-6 bg-muted/30">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleGuard>
   )
 }

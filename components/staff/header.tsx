@@ -7,9 +7,16 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Zap } from "lucide-react"
+import { Zap, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useUser } from "@/hooks/use-user"
 import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,18 +39,35 @@ export function StaffHeader() {
       {/* User Section */}
       <div className="flex items-center gap-3">
         {isLoading ? (
-          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-8 w-24" />
         ) : user ? (
-          <>
-            <span className="text-sm text-muted-foreground hidden sm:block">{user.name}</span>
-            <Avatar className="h-7 w-7">
-              <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
-              <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <Button variant="default" size="sm" className="rounded-full h-8 text-xs" onClick={logout}>
-              Logout
-            </Button>
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 px-2 gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+                  <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden sm:block">{user.name}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div className="font-medium text-foreground">{user.name || user.email}</div>
+                <div className="truncate">{user.email}</div>
+                <div className="capitalize mt-1">{user.roleName || user.roleId || 'Staff'}</div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Profile Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
           <Button variant="default" size="sm" className="rounded-full h-8 text-xs" asChild>
             <Link href="/login">Đăng nhập</Link>

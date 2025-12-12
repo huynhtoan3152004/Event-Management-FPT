@@ -56,26 +56,27 @@ export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
 
         {/* User Menu */}
         {isLoading ? (
-          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-8 w-24" />
         ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                <Avatar className="h-7 w-7">
+              <Button variant="ghost" className="h-8 px-2 gap-2">
+                <Avatar className="h-6 w-6">
                   <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
                   <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
+                <span className="text-sm font-medium hidden sm:block">{user.name}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                <div className="font-medium">{user.name}</div>
-                <div className="text-muted-foreground">{user.email}</div>
+                <div className="font-medium text-foreground">{user.name}</div>
+                <div className="truncate">{user.email}</div>
                 <div className="capitalize mt-1">{user.roleName || user.roleId || 'Organizer'}</div>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/organizer/settings">Settings</Link>
+                <Link href="/dashboard/settings">Profile Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive">

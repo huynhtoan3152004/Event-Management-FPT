@@ -5,6 +5,7 @@ import type React from "react"
    ============================================ */
 
 import { StaffHeader } from "@/components/staff/header"
+import { RoleGuard } from "@/components/shared/role-guard"
 
 export default function StaffLayout({
   children,
@@ -12,9 +13,11 @@ export default function StaffLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
-      <StaffHeader />
-      <main className="flex-1 p-4 lg:p-6">{children}</main>
-    </div>
+    <RoleGuard allowedRoles={["staff"]}>
+      <div className="min-h-screen bg-muted/30 flex flex-col">
+        <StaffHeader />
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
+      </div>
+    </RoleGuard>
   )
 }

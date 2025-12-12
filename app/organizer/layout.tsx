@@ -7,6 +7,7 @@ import type React from "react"
 
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { OrganizerSidebar } from "@/components/organizer/sidebar"
+import { RoleGuard } from "@/components/shared/role-guard"
 
 export default function OrganizerLayout({
   children,
@@ -14,9 +15,11 @@ export default function OrganizerLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <OrganizerSidebar />
-      <SidebarInset className="bg-muted/30">{children}</SidebarInset>
-    </SidebarProvider>
+    <RoleGuard allowedRoles={["organizer"]}>
+      <SidebarProvider>
+        <OrganizerSidebar />
+        <SidebarInset className="bg-muted/30">{children}</SidebarInset>
+      </SidebarProvider>
+    </RoleGuard>
   )
 }

@@ -65,17 +65,43 @@ apiClient.interceptors.response.use(
       // Xử lý các status code cụ thể
       switch (status) {
         case 401:
-          // Unauthorized - Xóa token và redirect đến login
+          // Unauthorized - Chỉ xóa token khi đang ở protected routes
+          // Không xóa token khi ở public routes (home, events, about, etc.)
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            // Có thể redirect đến login page
-            // window.location.href = '/login'
+            const pathname = window.location.pathname
+            const isProtectedRoute = 
+              pathname.startsWith('/dashboard') ||
+              pathname.startsWith('/organizer') ||
+              pathname.startsWith('/staff') ||
+              pathname.startsWith('/login') ||
+              pathname.startsWith('/register')
+            
+            // Chỉ xóa token và logout khi đang ở protected routes
+            // Tránh logout khi đang ở public routes như home page
+            if (isProtectedRoute) {
+              localStorage.removeItem('token')
+              localStorage.removeItem('user')
+              localStorage.removeItem('expiresAt')
+              // Redirect đến login page
+              window.location.href = '/login'
+            }
           }
-          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
-            position: 'top-right',
-            autoClose: 4000,
-          })
+          
+          // Chỉ hiển thị toast khi đang ở protected routes
+          if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname
+            const isProtectedRoute = 
+              pathname.startsWith('/dashboard') ||
+              pathname.startsWith('/organizer') ||
+              pathname.startsWith('/staff')
+            
+            if (isProtectedRoute) {
+              toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
+                position: 'top-right',
+                autoClose: 4000,
+              })
+            }
+          }
           break
 
         case 403:

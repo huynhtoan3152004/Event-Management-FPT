@@ -315,11 +315,12 @@ function TicketCard({
                 <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                 <span className="line-clamp-1">{location}</span>
               </div>
-              {ticket.seatNumber && (
-                <div className="flex items-center gap-2 text-primary">
-                  <span className="font-medium">Ghế: {ticket.seatNumber}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Ghế:</span>
+                <span className="font-medium text-primary">
+                  {ticket.seatNumber || "Chưa có ghế"}
+                </span>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-2">

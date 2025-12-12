@@ -74,8 +74,9 @@ export function DashboardHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                <div className="font-medium">{user.email}</div>
-                <div className="capitalize">{user.roleName || user.roleId || 'User'}</div>
+                <div className="font-medium text-foreground">{user.name || user.email}</div>
+                <div className="truncate">{user.email}</div>
+                <div className="capitalize mt-1">{user.roleName || user.roleId || 'User'}</div>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
