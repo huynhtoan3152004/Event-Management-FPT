@@ -39,11 +39,33 @@ export default function StaffEventSelectionPage() {
     const fetchEvents = async () => {
       try {
         setIsLoading(true)
-        const response = await eventService.getAllEvents({
-          pageNumber: 1,
-          pageSize: 100,
-          status: "published", // Only show published events
-        })
+        // Fetch both published and completed events for staff
+        const [publishedResponse, completedResponse] = await Promise.all([
+          eventService.getAllEvents({
+            pageNumber: 1,
+            pageSize: 100,
+            status: "published",
+          }),
+          eventService.getAllEvents({
+            pageNumber: 1,
+            pageSize: 100,
+            status: "completed",
+          }),
+        ])
+        
+        // Merge both responses
+        const allEvents: EventListItem[] = []
+        if (publishedResponse.success && publishedResponse.data) {
+          allEvents.push(...publishedResponse.data)
+        }
+        if (completedResponse.success && completedResponse.data) {
+          allEvents.push(...completedResponse.data)
+        }
+        
+        const response = {
+          success: true,
+          data: allEvents,
+        }
 
         if (response.success && response.data) {
           const eventsWithStats = await Promise.all(
@@ -117,7 +139,6 @@ export default function StaffEventSelectionPage() {
       
       const isOngoing = now >= eventStart && now <= eventEnd
       const isUpcoming = now < eventStart
-      const isPast = now > eventEnd
 
       if (activeTab === "today") {
         // "Đang diễn ra" - chỉ hiển thị event đang diễn ra
@@ -126,8 +147,13 @@ export default function StaffEventSelectionPage() {
         // "Sắp tới" - chỉ hiển thị event chưa bắt đầu (không bao gồm event đang diễn ra)
         return isUpcoming
       } else if (activeTab === "past") {
-        // "Đã qua" - chỉ hiển thị event đã kết thúc
-        return isPast
+        // "Đã qua" - chỉ hiển thị event có status là "completed"
+        const status = event.status?.toLowerCase()
+        // Debug: log để kiểm tra status thực tế
+        if (events.length > 0 && events.indexOf(event) === 0) {
+          console.log("All event statuses:", events.map(e => ({ title: e.title, status: e.status })))
+        }
+        return status === "completed"
       }
       return true
     })
@@ -162,6 +188,24 @@ export default function StaffEventSelectionPage() {
       : new Date(eventStart.getTime() + 2 * 60 * 60 * 1000) // Default 2 hours if no endTime
     
     return now >= eventStart && now <= eventEnd
+  }
+
+  // Get event status badge config
+  const getEventStatusBadge = (event: EventWithStats) => {
+    const status = event.status?.toLowerCase()
+    
+    // Nếu event có status "completed" thì hiển thị "Đã qua"
+    if (status === "completed") {
+      return { label: "Đã qua", variant: "secondary" as const, className: "" }
+    }
+    
+    // Nếu đang diễn ra
+    if (isEventOngoing(event)) {
+      return { label: "Đang diễn ra", variant: "default" as const, className: "bg-success" }
+    }
+    
+    // Mặc định là "Sắp tới"
+    return { label: "Sắp tới", variant: "secondary" as const, className: "" }
   }
 
   return (
@@ -226,6 +270,7 @@ export default function StaffEventSelectionPage() {
                     onSelect={() => setSelectedEventId(event.eventId)}
                     formatDate={formatDate}
                     isOngoing={isEventOngoing(event)}
+                    activeTab={activeTab}
                   />
                 ))
               )}
@@ -257,8 +302,11 @@ export default function StaffEventSelectionPage() {
                           </span>
                         </div>
                       </div>
-                      <Badge variant={isEventOngoing(selectedEvent) ? "default" : "secondary"}>
-                        {isEventOngoing(selectedEvent) ? "Đang diễn ra" : "Sắp tới"}
+                      <Badge 
+                        variant={getEventStatusBadge(selectedEvent).variant}
+                        className={getEventStatusBadge(selectedEvent).className}
+                      >
+                        {getEventStatusBadge(selectedEvent).label}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -302,14 +350,14 @@ export default function StaffEventSelectionPage() {
                     {/* Action Button */}
                     {isEventOngoing(selectedEvent) ? (
                       <Link href={`/staff/checkin/${selectedEvent.eventId}`}>
-                        <Button className="w-full rounded-full">
+                        <Button className="w-full rounded-full mb-5">
                           <ArrowRight className="h-4 w-4 mr-2" />
                           Bắt đầu check-in
                         </Button>
                       </Link>
                     ) : (
                       <Button 
-                        className="w-full rounded-full" 
+                        className="w-full rounded-full mb-5" 
                         disabled={true}
                       >
                         <ArrowRight className="h-4 w-4 mr-2" />
@@ -320,7 +368,7 @@ export default function StaffEventSelectionPage() {
                 </Card>
 
                 {/* Recent Check-ins Table */}
-                <Card>
+                {/* <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-success" />
@@ -370,7 +418,7 @@ export default function StaffEventSelectionPage() {
                       </div>
                     )}
                   </CardContent>
-                </Card>
+                </Card> */}
               </>
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground">
@@ -391,13 +439,35 @@ function EventSelectCard({
   onSelect,
   formatDate,
   isOngoing,
+  activeTab,
 }: {
   event: EventWithStats
   isSelected: boolean
   onSelect: () => void
   formatDate: (dateStr: string) => string
   isOngoing: boolean
+  activeTab: string
 }) {
+  // Xác định status hiển thị dựa trên status của event và activeTab
+  const getEventStatus = () => {
+    const status = event.status?.toLowerCase()
+    
+    // Nếu event có status "completed" thì hiển thị "Đã qua"
+    if (status === "completed") {
+      return { label: "Đã qua", variant: "secondary" as const, className: "bg-muted" }
+    }
+    
+    // Nếu đang diễn ra
+    if (isOngoing) {
+      return { label: "Đang diễn ra", variant: "default" as const, className: "bg-success" }
+    }
+    
+    // Mặc định là "Sắp tới"
+    return { label: "Sắp tới", variant: "secondary" as const, className: "" }
+  }
+
+  const statusConfig = getEventStatus()
+
   return (
     <Card
       className={`cursor-pointer transition-all hover:shadow-sm ${
@@ -421,10 +491,10 @@ function EventSelectCard({
             </div>
           </div>
           <Badge 
-            variant={isOngoing ? "default" : "secondary"} 
-            className={`text-xs ${isOngoing ? "bg-success" : ""}`}
+            variant={statusConfig.variant} 
+            className={`text-xs ${statusConfig.className}`}
           >
-            {isOngoing ? "Đang diễn ra" : "Sắp tới"}
+            {statusConfig.label}
           </Badge>
         </div>
       </CardContent>
