@@ -112,10 +112,11 @@ apiClient.interceptors.response.use(
           break
 
         case 404:
-          toast.error('Không tìm thấy dữ liệu.', {
-            position: 'top-right',
-            autoClose: 3000,
-          })
+          // Không hiển thị toast cho 404 - để component tự xử lý
+          // toast.error('Không tìm thấy dữ liệu.', {
+          //   position: 'top-right',
+          //   autoClose: 3000,
+          // })
           break
 
         case 415:

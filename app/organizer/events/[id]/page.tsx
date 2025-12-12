@@ -121,7 +121,7 @@ export default function EventDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      published: { label: "Đã xuất bản", variant: "default" },
+      published: { label: "Sắp diễn ra ", variant: "default" },
       draft: { label: "Bản nháp", variant: "secondary" },
       pending: { label: "Chờ duyệt", variant: "outline" },
       cancelled: { label: "Đã hủy", variant: "destructive" },

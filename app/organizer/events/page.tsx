@@ -149,7 +149,7 @@ export default function OrganizerEventsPage() {
               value="published"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
-              Đã xuất bản
+              Sắp diễn ra 
             </TabsTrigger>
             <TabsTrigger 
               value="completed"
@@ -245,7 +245,7 @@ function EventManagementCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
         <Badge className="absolute top-3 left-3 bg-primary/90 backdrop-blur-sm capitalize shadow-lg border-0 z-10">
-          {event.status === 'published' ? 'Đã xuất bản' : 
+          {event.status === 'published' ? 'Sắp diễn ra ' : 
            event.status === 'draft' ? 'Bản nháp' :
            event.status === 'pending' ? 'Chờ duyệt' :
            event.status === 'cancelled' ? 'Đã hủy' :

@@ -381,7 +381,7 @@ export default function StaffCheckInPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant={isEventOngoing() ? "default" : "secondary"}>
-                    {isEventOngoing() ? "Đang diễn ra" : event.status === "published" ? "Đã xuất bản" : event.status}
+                    {isEventOngoing() ? "Đang diễn ra" : event.status === "published" ? "Sắp diễn ra " : event.status}
                   </Badge>
                   <h2 className="text-lg font-semibold">{event.title}</h2>
                 </div>

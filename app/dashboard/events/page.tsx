@@ -106,7 +106,7 @@ export default function StudentEventsPage() {
             value="published"
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
           >
-            Đã xuất bản
+            Sắp diễn ra 
           </TabsTrigger>
           <TabsTrigger 
             value="registered"
@@ -168,7 +168,7 @@ function EventCard({
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      published: { label: "Đã xuất bản", variant: "default" },
+      published: { label: "Sắp diễn ra ", variant: "default" },
       draft: { label: "Bản nháp", variant: "secondary" },
       pending: { label: "Chờ duyệt", variant: "outline" },
       cancelled: { label: "Đã hủy", variant: "destructive" },
