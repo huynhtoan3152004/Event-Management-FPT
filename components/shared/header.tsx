@@ -259,7 +259,7 @@ export function Header() {
                       className="px-4 py-3 rounded-lg hover:bg-accent text-center font-medium"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      My Tickets
+                      Vé của bạn
                     </Link>
                   )}
                   <button

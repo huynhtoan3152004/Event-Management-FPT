@@ -97,6 +97,7 @@ export const API_ENDPOINTS = {
     BASE: "/reports",
     DASHBOARD: "/reports/dashboard",
     EVENTS: "/reports/events",
+    SYSTEM_SUMMARY: "/api/Reports/system-summary",
     ATTENDANCE: (eventId: string) => `/reports/attendance/${eventId}`,
     EXPORT_CSV: (eventId: string) => `/reports/export/csv/${eventId}`,
     EXPORT_PDF: (eventId: string) => `/reports/export/pdf/${eventId}`,

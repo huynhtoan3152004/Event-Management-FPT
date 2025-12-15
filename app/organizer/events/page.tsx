@@ -29,6 +29,8 @@ export default function OrganizerEventsPage() {
   const { user } = useUser()
 
   // Fetch events của organizer hiện tại
+  // Note: Backend tự động publish events khi đủ điều kiện (status = draft/pending và registrationStart <= now)
+  // Không cần gọi API publish thủ công ở frontend
   const fetchEvents = async () => {
     if (!user?.userId) return
     
@@ -43,6 +45,17 @@ export default function OrganizerEventsPage() {
       
       if (response.success && response.data) {
         setEvents(response.data)
+        
+        // Debug: Log status của events để kiểm tra (chỉ trong development)
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Events status breakdown:", {
+            total: response.data.length,
+            byStatus: response.data.reduce((acc: Record<string, number>, event) => {
+              acc[event.status] = (acc[event.status] || 0) + 1
+              return acc
+            }, {}),
+          })
+        }
       }
     } catch (error: any) {
       console.error('Error fetching events:', error)
@@ -92,7 +105,7 @@ export default function OrganizerEventsPage() {
 
   return (
     <>
-      <OrganizerHeader title="My Events" />
+      <OrganizerHeader title="Quản lý sự kiện" />
 
       <main className="flex-1 p-4 lg:p-6 space-y-6 bg-gradient-to-br from-background via-muted/20 to-background min-h-screen">
         {/* Header Section */}

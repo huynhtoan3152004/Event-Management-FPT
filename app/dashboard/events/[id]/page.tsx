@@ -101,6 +101,25 @@ export default function StudentEventDetailPage() {
     }
   }, [eventId, router])
 
+  // Kiểm tra xem user đã đăng ký event này chưa
+  useEffect(() => {
+    const checkRegistered = async () => {
+      if (!eventId) return
+      try {
+        const res = await ticketService.getMyTickets()
+        if (res.success && res.data) {
+          const existed = res.data.some(
+            (t) => t.eventId === eventId && t.status !== "cancelled"
+          )
+          setHasRegistered(existed)
+        }
+      } catch (err) {
+        console.error("Không kiểm tra được trạng thái đăng ký", err)
+      }
+    }
+    checkRegistered()
+  }, [eventId])
+
   const fetchSeats = async (eventId: string) => {
     try {
       setIsLoadingSeats(true)
@@ -292,6 +311,19 @@ export default function StudentEventDetailPage() {
     && now >= new Date(event.registrationStart) 
     && now <= new Date(event.registrationEnd)
     && availableSeats > 0
+  
+  const isRegistrationClosedByTime = event.status === "published"
+    && event.registrationStart
+    && event.registrationEnd
+    && (now > new Date(event.registrationEnd) || now < new Date(event.registrationStart))
+  
+  const registrationCtaLabel = (() => {
+    if (hasRegistered) return "Đã đăng ký"
+    if (isRegistrationOpen) return "Đăng ký ngay"
+    if (isRegistrationClosedByTime) return "Hết thời gian đăng ký"
+    return "Chưa mở đăng ký"
+  })()
+  const registrationEnded = event.registrationEnd ? now > new Date(event.registrationEnd) : false
 
   return (
     <>
@@ -299,12 +331,21 @@ export default function StudentEventDetailPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header Actions */}
         <div className="flex items-center justify-between">
-          <Link href="/dashboard/events">
-            <Button variant="outline" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Quay lại
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              // quay lại trang trước; nếu không có history thì fallback về /dashboard/events
+              if (window.history.length > 1) {
+                router.back()
+              } else {
+                router.push("/dashboard/events")
+              }
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại
+          </Button>
         </div>
 
         {/* Event Image */}
@@ -484,9 +525,11 @@ export default function StudentEventDetailPage() {
                     <p className="text-sm text-muted-foreground">
                       {!event.registrationStart 
                         ? "Chưa mở đăng ký"
-                        : new Date() < new Date(event.registrationStart!)
+                        : now < new Date(event.registrationStart!)
                           ? `Đăng ký sẽ mở vào: ${formatDateTime(event.registrationStart)}`
-                          : "Đã đóng đăng ký"}
+                          : registrationEnded
+                            ? "Hết thời gian đăng ký"
+                            : "Chưa mở đăng ký"}
                     </p>
                   </div>
                 )}
@@ -520,40 +563,44 @@ export default function StudentEventDetailPage() {
                   </div>
                 </div>
 
-                {/* Seat Selection (hiển thị khi có hall và còn chỗ, không phụ thuộc mở đăng ký) */}
-                {event.hallId && availableSeats > 0 && (
+                {/* Seat Selection (ẩn chọn ghế khi đã đăng ký, chỉ xem thông tin) */}
+                {(event.hallId && availableSeats > 0) && (
                   <>
                     <Separator />
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold">Chọn ghế (tùy chọn)</label>
-                    
-                    {isLoadingSeats ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <span className="ml-2 text-sm text-muted-foreground">Đang tải danh sách ghế...</span>
-                      </div>
-                    ) : seats.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {selectedSeatId
-                              ? `Đã chọn: ${seats.find((s) => s.seatId === selectedSeatId)?.seatNumber}`
-                              : "Chưa chọn ghế. Có thể để hệ thống tự chọn."}
-                          </span>
-                          <Button size="sm" variant="outline" onClick={() => setIsSeatGridOpen(true)}>
-                            Mở danh sách ghế
-                          </Button>
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold">Ghế (tùy chọn)</label>
+                      
+                      {hasRegistered ? (
+                        <p className="text-sm text-muted-foreground">
+                          Bạn đã đăng ký, không thể chọn ghế. Ghế sẽ do hệ thống/ban tổ chức sắp xếp.
+                        </p>
+                      ) : isLoadingSeats ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <span className="ml-2 text-sm text-muted-foreground">Đang tải danh sách ghế...</span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Bạn có thể chọn hoặc bỏ chọn ghế trong cửa sổ danh sách ghế.
+                      ) : seats.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              {selectedSeatId
+                                ? `Đã chọn: ${seats.find((s) => s.seatId === selectedSeatId)?.seatNumber}`
+                                : "Chưa chọn ghế. Có thể để hệ thống tự chọn."}
+                            </span>
+                            <Button size="sm" variant="outline" onClick={() => setIsSeatGridOpen(true)} >
+                              Mở danh sách ghế
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Bạn có thể chọn hoặc bỏ chọn ghế trong cửa sổ danh sách ghế.
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Hệ thống sẽ tự động chọn ghế trống cho bạn
-                      </p>
-                    )}
-                  </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Hệ thống sẽ tự động chọn ghế trống cho bạn
+                        </p>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -572,7 +619,7 @@ export default function StudentEventDetailPage() {
                     ) : (
                       <>
                         <Ticket className="h-4 w-4 mr-2" />
-                        {hasRegistered ? "Đã đăng ký" : "Đăng ký ngay"}
+                        {registrationCtaLabel}
                       </>
                     )}
                   </Button>
@@ -586,7 +633,9 @@ export default function StudentEventDetailPage() {
                       ? "Đã hết chỗ"
                       : hasRegistered
                         ? "Đã đăng ký"
-                        : "Chưa mở đăng ký"}
+                        : registrationEnded
+                          ? "Hết thời gian đăng ký"
+                          : "Chưa mở đăng ký"}
                   </Button>
                 )}
 

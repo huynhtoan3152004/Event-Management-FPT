@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Calendar, MapPin, Users, Search, Filter, Loader2 } from "lucide-react"
@@ -15,11 +15,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { eventService, EventListItem } from "@/lib/services/event.service"
+import { ticketService, TicketDto } from "@/lib/services/ticket.service"
 import { toast } from "react-toastify"
 
 export default function StudentEventsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [events, setEvents] = useState<EventListItem[]>([])
+  const [tickets, setTickets] = useState<TicketDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("published")
 
@@ -61,12 +63,40 @@ export default function StudentEventsPage() {
     fetchEvents()
   }, [activeTab])
 
-  // Filter events based on search query
+  // Fetch tickets để nhận biết đã đăng ký
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const res = await ticketService.getMyTickets()
+        if (res.success && res.data) {
+          setTickets(res.data)
+        }
+      } catch (err) {
+        console.error("Error fetching tickets", err)
+      }
+    }
+    fetchTickets()
+  }, [])
+
+  const registeredEventIds = useMemo(() => {
+    const ids = new Set<string>()
+    tickets.forEach((t) => {
+      if (t.status !== "cancelled") ids.add(t.eventId)
+    })
+    return ids
+  }, [tickets])
+
+  // Filter events based on search query (và tab đã đăng ký)
   const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    return matchesSearch
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+    if (activeTab === "registered") {
+      return registeredEventIds.has(event.eventId)
+    }
+    return true
   })
 
   return (
@@ -136,7 +166,7 @@ export default function StudentEventsPage() {
           <TabsContent value={activeTab} className="mt-6">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredEvents.map((event) => (
-                <EventCard key={event.eventId} event={event} />
+                <EventCard key={event.eventId} event={event} registeredEventIds={registeredEventIds} />
               ))}
             </div>
           </TabsContent>
@@ -150,8 +180,10 @@ export default function StudentEventsPage() {
 // Event Card Component
 function EventCard({
   event,
+  registeredEventIds,
 }: {
   event: EventListItem
+  registeredEventIds: Set<string>
 }) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -181,7 +213,7 @@ function EventCard({
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full !p-0 !gap-0 shadow-md">
-      <div className="relative w-full h-44 overflow-hidden flex-shrink-0">
+      <Link href={`/dashboard/events/${event.eventId}`} className="relative w-full h-44 overflow-hidden flex-shrink-0 block">
         <Image 
           src={event.imageUrl || "/placeholder.svg"} 
           alt={event.title} 
@@ -193,12 +225,14 @@ function EventCard({
         <div className="absolute top-3 left-3 z-10">
           {getStatusBadge(event.status)}
         </div>
-      </div>
+      </Link>
 
       <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
-        <h3 className="font-bold text-base text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+        <Link href={`/dashboard/events/${event.eventId}`} className="hover:text-primary transition-colors">
+          <h3 className="font-bold text-base text-foreground line-clamp-2">
           {event.title}
         </h3>
+        </Link>
 
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2.5 text-muted-foreground">
@@ -238,8 +272,12 @@ function EventCard({
         )}
 
         <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
-          <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300">
-            Đăng ký ngay
+          <Button
+            variant={registeredEventIds.has(event.eventId) ? "secondary" : "outline"}
+            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300"
+            disabled={registeredEventIds.has(event.eventId)}
+          >
+            {registeredEventIds.has(event.eventId) ? "Đã đăng ký" : "Đăng ký ngay"}
           </Button>
         </Link>
       </CardContent>

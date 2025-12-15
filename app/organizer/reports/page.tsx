@@ -5,8 +5,8 @@
 
 "use client"
 
-import { useState } from "react"
-import { Download, TrendingUp, Users, Calendar, BarChart3, FileSpreadsheet, FileText, Filter } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Download, TrendingUp, Users, Calendar, BarChart3, FileSpreadsheet, FileText, Filter, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { OrganizerHeader } from "@/components/organizer/header"
-import { MOCK_DASHBOARD_STATS } from "@/lib/constants"
+import { reportService, SystemSummaryResponse } from "@/lib/services/report.service"
+import { toast } from "react-toastify"
 import {
   BarChart,
   Bar,
@@ -31,22 +32,22 @@ import {
   Legend,
 } from "recharts"
 
-// Mock data for charts
-const registrationTrendData = [
-  { month: "Jan", registrations: 120, attendance: 95 },
-  { month: "Feb", registrations: 180, attendance: 150 },
-  { month: "Mar", registrations: 250, attendance: 210 },
-  { month: "Apr", registrations: 320, attendance: 280 },
-  { month: "May", registrations: 280, attendance: 240 },
-  { month: "Jun", registrations: 400, attendance: 350 },
+// Default mock data for charts (fallback)
+const defaultRegistrationTrendData = [
+  { month: "Th1", registrations: 120, attendance: 95 },
+  { month: "Th2", registrations: 180, attendance: 150 },
+  { month: "Th3", registrations: 250, attendance: 210 },
+  { month: "Th4", registrations: 320, attendance: 280 },
+  { month: "Th5", registrations: 280, attendance: 240 },
+  { month: "Th6", registrations: 400, attendance: 350 },
 ]
 
 const eventTypeData = [
   { name: "Workshop", value: 35, color: "hsl(var(--chart-1))" },
   { name: "Talkshow", value: 25, color: "hsl(var(--chart-2))" },
-  { name: "Competition", value: 20, color: "hsl(var(--chart-3))" },
-  { name: "Festival", value: 15, color: "hsl(var(--chart-4))" },
-  { name: "Other", value: 5, color: "hsl(var(--chart-5))" },
+  { name: "Cuộc thi", value: 20, color: "hsl(var(--chart-3))" },
+  { name: "Lễ hội", value: 15, color: "hsl(var(--chart-4))" },
+  { name: "Khác", value: 5, color: "hsl(var(--chart-5))" },
 ]
 
 const checkInByHourData = [
@@ -63,27 +64,85 @@ const checkInByHourData = [
 
 // Event report data
 const eventReportData = [
-  { id: 1, name: "Tech Conference 2024", date: "Oct 15", registered: 250, attended: 215, rate: 86 },
-  { id: 2, name: "Music Festival", date: "Oct 20", registered: 500, attended: 450, rate: 90 },
-  { id: 3, name: "Hackathon 2024", date: "Oct 25", registered: 100, attended: 92, rate: 92 },
-  { id: 4, name: "Business Pitching", date: "Nov 01", registered: 150, attended: 128, rate: 85 },
-  { id: 5, name: "AI Workshop", date: "Nov 05", registered: 80, attended: 75, rate: 94 },
+  { id: 1, name: "Tech Conference 2024", date: "15/10", registered: 250, attended: 215, rate: 86 },
+  { id: 2, name: "Music Festival", date: "20/10", registered: 500, attended: 450, rate: 90 },
+  { id: 3, name: "Hackathon 2024", date: "25/10", registered: 100, attended: 92, rate: 92 },
+  { id: 4, name: "Business Pitching", date: "01/11", registered: 150, attended: 128, rate: 85 },
+  { id: 5, name: "AI Workshop", date: "05/11", registered: 80, attended: 75, rate: 94 },
 ]
 
 export default function ReportsPage() {
-  const stats = MOCK_DASHBOARD_STATS
   const [timeRange, setTimeRange] = useState("6months")
+  const [isLoading, setIsLoading] = useState(true)
+  const [summaryData, setSummaryData] = useState<SystemSummaryResponse["data"] | null>(null)
+
+  // Fetch system summary
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        setIsLoading(true)
+        const response = await reportService.getSystemSummary()
+        if (response.success && response.data) {
+          setSummaryData(response.data)
+        }
+      } catch (error: any) {
+        console.error("Error fetching system summary:", error)
+        toast.error("Không thể tải dữ liệu báo cáo")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSummary()
+  }, [])
+
+  // Calculate stats from summary data
+  const stats = summaryData
+    ? {
+        totalEvents: summaryData.totalEvents,
+        totalRegistrations: summaryData.totalTickets,
+        averageAttendanceRate:
+          summaryData.totalTickets > 0
+            ? Math.round((summaryData.totalCheckins / summaryData.totalTickets) * 100)
+            : 0,
+        eventsThisMonth:
+          summaryData.eventsByMonth.length > 0
+            ? summaryData.eventsByMonth[summaryData.eventsByMonth.length - 1].eventCount
+            : 0,
+        registrationsThisMonth:
+          summaryData.attendanceByMonth.length > 0
+            ? summaryData.attendanceByMonth[summaryData.attendanceByMonth.length - 1].participantCount
+            : 0,
+      }
+    : {
+        totalEvents: 0,
+        totalRegistrations: 0,
+        averageAttendanceRate: 0,
+        eventsThisMonth: 0,
+        registrationsThisMonth: 0,
+      }
+
+  // Format data for charts
+  const registrationTrendData = summaryData?.eventsByMonth.map((eventMonth, index) => {
+    const attendanceMonth = summaryData.attendanceByMonth[index] || { participantCount: 0 }
+    const monthNames = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"]
+    return {
+      month: monthNames[eventMonth.month - 1] || `M${eventMonth.month}`,
+      registrations: eventMonth.eventCount * 50, // Estimate based on events
+      attendance: attendanceMonth.participantCount,
+    }
+  }) || defaultRegistrationTrendData
 
   return (
     <>
-      <OrganizerHeader title="Reports" />
+      <OrganizerHeader title="Báo cáo" />
 
       <main className="flex-1 p-4 lg:p-6 space-y-6">
         {/* Header Actions */}
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Analytics Overview</h2>
-            <p className="text-sm text-muted-foreground">Track your event performance and attendance metrics</p>
+            <h2 className="text-lg font-semibold">Tổng quan phân tích</h2>
+            <p className="text-sm text-muted-foreground">Theo dõi hiệu suất và tham dự sự kiện</p>
           </div>
           <div className="flex gap-2">
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -91,10 +150,10 @@ export default function ReportsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7days">Last 7 days</SelectItem>
-                <SelectItem value="30days">Last 30 days</SelectItem>
-                <SelectItem value="6months">Last 6 months</SelectItem>
-                <SelectItem value="1year">Last year</SelectItem>
+                <SelectItem value="7days">7 ngày qua</SelectItem>
+                <SelectItem value="30days">30 ngày qua</SelectItem>
+                <SelectItem value="6months">6 tháng qua</SelectItem>
+                <SelectItem value="1year">1 năm qua</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" size="icon">
@@ -112,10 +171,10 @@ export default function ReportsPage() {
                   <Calendar className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Events</p>
+                  <p className="text-xs text-muted-foreground">Tổng số sự kiện</p>
                   <p className="text-2xl font-bold text-foreground">{stats.totalEvents}</p>
                   <p className="text-xs text-success flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />+{stats.eventsThisMonth} this month
+                    <TrendingUp className="h-3 w-3" />+{stats.eventsThisMonth} tháng này
                   </p>
                 </div>
               </div>
@@ -129,10 +188,29 @@ export default function ReportsPage() {
                   <Users className="h-4 w-4 text-success" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Registrations</p>
+                  <p className="text-xs text-muted-foreground">Tổng số vé</p>
                   <p className="text-2xl font-bold text-foreground">{stats.totalRegistrations.toLocaleString()}</p>
                   <p className="text-xs text-success flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />+{stats.registrationsThisMonth} this month
+                    <TrendingUp className="h-3 w-3" />+{stats.registrationsThisMonth} tháng này
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Tổng lượt check-in</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {summaryData?.totalCheckins || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {summaryData?.totalStudentsParticipated || 0} người tham dự (unique)
                   </p>
                 </div>
               </div>
@@ -146,26 +224,9 @@ export default function ReportsPage() {
                   <TrendingUp className="h-4 w-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Avg. Attendance Rate</p>
+                  <p className="text-xs text-muted-foreground">Tỷ lệ tham dự trung bình</p>
                   <p className="text-2xl font-bold text-foreground">{stats.averageAttendanceRate}%</p>
                   <Progress value={stats.averageAttendanceRate} className="h-1 mt-1 w-20" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent rounded-lg">
-                  <BarChart3 className="h-4 w-4 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Avg. per Event</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {Math.round(stats.totalRegistrations / stats.totalEvents)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">attendees</p>
                 </div>
               </div>
             </CardContent>
@@ -179,8 +240,8 @@ export default function ReportsPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Registration & Attendance Trends</CardTitle>
-                  <CardDescription className="text-xs">Monthly comparison</CardDescription>
+                  <CardTitle className="text-base">Xu hướng đăng ký & tham dự</CardTitle>
+                  <CardDescription className="text-xs">So sánh theo tháng</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm">
                   <Download className="h-4 w-4" />
@@ -209,7 +270,7 @@ export default function ReportsPage() {
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--primary))" }}
-                      name="Registrations"
+                      name="Đăng ký"
                     />
                     <Line
                       type="monotone"
@@ -217,7 +278,7 @@ export default function ReportsPage() {
                       stroke="hsl(var(--success))"
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--success))" }}
-                      name="Attendance"
+                      name="Tham dự"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -230,8 +291,8 @@ export default function ReportsPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Events by Type</CardTitle>
-                  <CardDescription className="text-xs">Distribution percentage</CardDescription>
+                  <CardTitle className="text-base">Sự kiện theo loại</CardTitle>
+                  <CardDescription className="text-xs">Tỷ lệ phân bổ</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm">
                   <Download className="h-4 w-4" />
@@ -277,8 +338,8 @@ export default function ReportsPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Check-ins by Hour (Last Event)</CardTitle>
-                <CardDescription className="text-xs">Peak times for event attendance</CardDescription>
+                <CardTitle className="text-base">Check-in theo giờ (sự kiện gần nhất)</CardTitle>
+                <CardDescription className="text-xs">Khung giờ cao điểm tham dự</CardDescription>
               </div>
               <Button variant="ghost" size="sm">
                 <Download className="h-4 w-4" />
@@ -312,17 +373,17 @@ export default function ReportsPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Event Performance Report</CardTitle>
-                <CardDescription className="text-xs">Detailed breakdown by event</CardDescription>
+                <CardTitle className="text-base">Báo cáo hiệu suất sự kiện</CardTitle>
+                <CardDescription className="text-xs">Chi tiết theo từng sự kiện</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Export CSV
+                  Xuất CSV
                 </Button>
                 <Button variant="outline" size="sm">
                   <FileText className="h-4 w-4 mr-2" />
-                  Export PDF
+                  Xuất PDF
                 </Button>
               </div>
             </div>

@@ -24,51 +24,52 @@ export default function MyTicketsPage() {
   const [qrTicketCode, setQrTicketCode] = useState<string>("")
   const [eventLocations, setEventLocations] = useState<Record<string, string>>({})
   const [eventImages, setEventImages] = useState<Record<string, string>>({})
+  const [cancellingId, setCancellingId] = useState<string>("")
 
   // Fetch tickets từ API
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setIsLoading(true)
-        const response = await ticketService.getMyTickets()
+  const fetchTickets = async () => {
+    try {
+      setIsLoading(true)
+      const response = await ticketService.getMyTickets()
+      
+      if (response.success && response.data) {
+        setTickets(response.data)
         
-        if (response.success && response.data) {
-          setTickets(response.data)
-          
-          // Fetch event details (location and image) for each ticket
-          const locationMap: Record<string, string> = {}
-          const imageMap: Record<string, string> = {}
-          const uniqueEventIds = [...new Set(response.data.map(t => t.eventId))]
-          
-          await Promise.all(
-            uniqueEventIds.map(async (eventId) => {
-              try {
-                const eventResponse = await eventService.getEventById(eventId)
-                if (eventResponse.success && eventResponse.data) {
-                  locationMap[eventId] = eventResponse.data.location || "Chưa có địa điểm"
-                  imageMap[eventId] = eventResponse.data.imageUrl || "/placeholder.svg"
-                }
-              } catch (error) {
-                console.error(`Error fetching event ${eventId}:`, error)
-                locationMap[eventId] = "Chưa có địa điểm"
-                imageMap[eventId] = "/placeholder.svg"
+        // Fetch event details (location and image) for each ticket
+        const locationMap: Record<string, string> = {}
+        const imageMap: Record<string, string> = {}
+        const uniqueEventIds = [...new Set(response.data.map(t => t.eventId))]
+        
+        await Promise.all(
+          uniqueEventIds.map(async (eventId) => {
+            try {
+              const eventResponse = await eventService.getEventById(eventId)
+              if (eventResponse.success && eventResponse.data) {
+                locationMap[eventId] = eventResponse.data.location || "Chưa có địa điểm"
+                imageMap[eventId] = eventResponse.data.imageUrl || "/placeholder.svg"
               }
-            })
-          )
-          
-          setEventLocations(locationMap)
-          setEventImages(imageMap)
-        } else {
-          toast.error(response.message || "Không thể tải danh sách vé")
-        }
-      } catch (error: any) {
-        console.error("Error fetching tickets:", error)
-        toast.error("Không thể tải danh sách vé. Vui lòng thử lại.")
-      } finally {
-        setIsLoading(false)
+            } catch (error) {
+              console.error(`Error fetching event ${eventId}:`, error)
+              locationMap[eventId] = "Chưa có địa điểm"
+              imageMap[eventId] = "/placeholder.svg"
+            }
+          })
+        )
+        
+        setEventLocations(locationMap)
+        setEventImages(imageMap)
+      } else {
+        toast.error(response.message || "Không thể tải danh sách vé")
       }
+    } catch (error: any) {
+      console.error("Error fetching tickets:", error)
+      toast.error("Không thể tải danh sách vé. Vui lòng thử lại.")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchTickets()
   }, [])
 
@@ -122,6 +123,36 @@ export default function MyTicketsPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticketCode)}`
   }
 
+  const canCancelTicket = (ticket: TicketDto) => {
+    if (ticket.status !== "active") return false
+    // Student rule: hủy trước 24h
+    const eventStart = new Date(`${ticket.eventDate}T${ticket.eventStartTime || "00:00:00"}`)
+    const hoursUntilEvent = (eventStart.getTime() - Date.now()) / (1000 * 60 * 60)
+    return hoursUntilEvent >= 24
+  }
+
+  const handleCancel = async (ticket: TicketDto) => {
+    if (!canCancelTicket(ticket)) {
+      toast.warning("Chỉ hủy vé trước giờ bắt đầu ít nhất 24 giờ")
+      return
+    }
+    try {
+      setCancellingId(ticket.ticketId)
+      const res = await ticketService.cancelTicket(ticket.ticketId)
+      if (res.success) {
+        toast.success(res.message || "Hủy vé thành công")
+        await fetchTickets()
+      } else {
+        toast.error(res.message || "Không thể hủy vé")
+      }
+    } catch (err: any) {
+      console.error("Cancel ticket error", err)
+      toast.error(err?.response?.data?.message || "Không thể hủy vé")
+    } finally {
+      setCancellingId("")
+    }
+  }
+
   // Get status badge
   const getStatusBadge = (status: string) => {
     if (status === "active") {
@@ -140,8 +171,8 @@ export default function MyTicketsPage() {
       <div className="space-y-6 bg-background min-h-screen p-4 lg:p-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Tickets</h1>
-          <p className="text-muted-foreground">Manage and view your event tickets</p>
+          <h1 className="text-2xl font-bold text-foreground">Vé của bạn</h1>
+          <p className="text-muted-foreground">Xem và quản lý vé của bạn</p>
         </div>
 
         {/* Tabs */}
@@ -175,6 +206,9 @@ export default function MyTicketsPage() {
                     location={eventLocations[ticket.eventId] || "Chưa có địa điểm"}
                     eventImage={eventImages[ticket.eventId] || "/placeholder.svg"}
                     onShowQR={showQRCode}
+                    onCancel={handleCancel}
+                    canCancel={canCancelTicket(ticket)}
+                    cancelling={cancellingId === ticket.ticketId}
                     getQRCodeUrl={getQRCodeUrl}
                     getStatusBadge={getStatusBadge}
                     formatDate={formatDate}
@@ -247,6 +281,9 @@ interface TicketCardProps {
   location: string
   eventImage: string
   onShowQR: (ticketCode: string) => void
+  onCancel: (ticket: TicketDto) => void
+  canCancel: boolean
+  cancelling: boolean
   getQRCodeUrl: (ticketCode: string) => string
   getStatusBadge: (status: string) => ReactElement
   formatDate: (dateStr: string) => string
@@ -258,6 +295,9 @@ function TicketCard({
   location,
   eventImage,
   onShowQR,
+  onCancel,
+  canCancel,
+  cancelling,
   getQRCodeUrl,
   getStatusBadge,
   formatDate,
@@ -268,14 +308,16 @@ function TicketCard({
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow bg-background">
       <div className="relative h-32 overflow-hidden">
-        <Image
-          src={eventImage}
-          alt={ticket.eventTitle || "Event"}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+        <a href={`/dashboard/events/${ticket.eventId}`} className="block h-full">
+          <Image
+            src={eventImage}
+            alt={ticket.eventTitle || "Event"}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+        </a>
       </div>
 
       <CardContent className="p-6">
@@ -299,9 +341,12 @@ function TicketCard({
           {/* Ticket Details */}
           <div className="flex-1 space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-lg text-foreground line-clamp-2 flex-1">
+              <a
+                href={`/dashboard/events/${ticket.eventId}`}
+                className="font-semibold text-lg text-foreground line-clamp-2 flex-1 hover:text-primary transition-colors"
+              >
                 {ticket.eventTitle || "Sự kiện"}
-              </h3>
+              </a>
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground">
@@ -323,7 +368,17 @@ function TicketCard({
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-full"
+                asChild
+              >
+                <a href={`/dashboard/events/${ticket.eventId}`}>
+                  Chi tiết sự kiện
+                </a>
+              </Button>
               <Button
                 size="sm"
                 className="rounded-full"
@@ -348,6 +403,24 @@ function TicketCard({
                 <Download className="h-4 w-4 mr-2" />
                 Tải xuống
               </Button>
+              {ticket.status === "active" && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="rounded-full"
+                  onClick={() => onCancel(ticket)}
+                  disabled={!canCancel || cancelling}
+                >
+                  {cancelling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Đang hủy...
+                    </>
+                  ) : (
+                    "Hủy vé"
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

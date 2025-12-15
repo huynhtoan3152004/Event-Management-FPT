@@ -229,7 +229,10 @@ export default function CreateEventPage() {
         return
       }
 
-      await postEvent(payload)
+      const response = await postEvent(payload)
+      console.log("Event created response:", response)
+      console.log("Event status:", response?.data?.status || response?.status || "unknown")
+      
       toast.success("Tạo sự kiện thành công!")
       router.push("/organizer/events")
     } catch (error: any) {

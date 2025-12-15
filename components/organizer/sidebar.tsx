@@ -44,14 +44,13 @@ import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const mainNavItems = [
-  { label: "Dashboard", href: "/organizer", icon: LayoutDashboard },
-  { label: "My Events", href: "/organizer/events", icon: Calendar },
+  { label: "Quản lý sự kiện", href: "/organizer/events", icon: Calendar },
 ]
 
 const manageNavItems = [
   { label: "Speakers", href: "/organizer/speakers", icon: Users },
-  { label: "Venues", href: "/organizer/venues", icon: MapPin },
-  { label: "Seats", href: "/organizer/seats", icon: Armchair },
+  { label: "Địa điểm", href: "/organizer/venues", icon: MapPin },
+  { label: "Ghế", href: "/organizer/seats", icon: Armchair },
 ]
 
 const analyticsNavItems = [{ label: "Reports", href: "/organizer/reports", icon: BarChart3 }]
@@ -68,7 +67,7 @@ export function OrganizerSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b p-3">
-        <Link href="/organizer" className="flex items-center gap-2">
+        <Link href="/organizer/events" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <span className="text-xs font-bold text-foreground">FPU</span>
           </div>
@@ -100,7 +99,7 @@ export function OrganizerSidebar() {
 
         {/* Manage Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel>Quản lý</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {manageNavItems.map((item) => (
@@ -119,7 +118,7 @@ export function OrganizerSidebar() {
 
         {/* Analytics Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+          <SidebarGroupLabel>Thống kê</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {analyticsNavItems.map((item) => (

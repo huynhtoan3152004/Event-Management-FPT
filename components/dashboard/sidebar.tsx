@@ -33,10 +33,10 @@ import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Bảng điều khiển", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/dashboard/events", icon: Calendar },
-  { label: "My Tickets", href: "/dashboard/tickets", icon: Ticket },
-  { label: "Attendance", href: "/dashboard/attendance", icon: ClipboardCheck },
+  { label: "Vé của bạn", href: "/dashboard/tickets", icon: Ticket },
+  { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
 ]
 
 export function DashboardSidebar() {
