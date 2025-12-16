@@ -66,7 +66,7 @@ export function HeroSection() {
               <br />
               <span className="italic">tham gia sự kiện</span>
               <br />
-              <span className="italic">độc quyền FPTU</span>
+              <span className="italic"> FPTU</span>
             </h1>
 
             <p

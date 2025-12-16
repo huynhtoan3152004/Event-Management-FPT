@@ -17,7 +17,7 @@ import { useUser } from "@/hooks/use-user"
 import { toast } from "react-toastify"
 import { cn } from "@/lib/utils"
 
-type SeatStatus = "available" | "reserved" | "occupied" | "blocked"
+type SeatStatus = "available" | "reserved" | "occupied" 
 
 interface SeatData {
   id: string
@@ -77,29 +77,39 @@ export default function OrganizerSeatsPage() {
 
       try {
         setIsLoadingSeats(true)
-        const response = await eventService.getEventSeats(selectedEvent)
-        
-        if (response.success && response.data) {
-          // Map từ SeatDto sang SeatData
-          const mappedSeats: SeatData[] = response.data.map((seat) => {
-            // Parse seatNumber (ví dụ: "A1" -> row: "A", number: 1)
-            const match = seat.seatNumber.match(/^([A-Z]+)(\d+)$/)
-            const row = match ? match[1] : seat.rowLabel
-            const number = match ? parseInt(match[2], 10) : 0
-            
-            return {
-              id: seat.seatId || `${row}-${number}`,
-              seatId: seat.seatId,
-              row,
-              number,
-              status: seat.status as SeatStatus,
+        const response = await eventService.getEventSeatMap(selectedEvent)
+        if (response.success && response.data?.rows) {
+          const mappedSeats: SeatData[] = response.data.rows.flatMap(
+            (row: any) => {
+              return (
+                row.seats
+                  .map((seat: any) => {
+                    // label: "A1", "B10", ...
+                    const match = seat.label.match(/^([A-Z]+)(\d+)$/);
+
+                    return {
+                      id: seat.seatId,
+                      seatId: seat.seatId,
+                      row: row.rowLabel, // A, B, C
+                      number: match ? Number(match[2]) : 0, // 1,2,3,10
+                      status: seat.status,
+                    };
+                  })
+                  // ✅ SORT GHẾ TRONG CÙNG 1 ROW (trái → phải)
+                  .sort((a: SeatData, b: SeatData) => a.number - b.number)
+              );
             }
-          })
-          
-          setSeats(mappedSeats)
+          );
+
+          // ✅ SORT ROW (A → B → C)
+          mappedSeats.sort((a, b) =>
+            a.row !== b.row ? a.row.localeCompare(b.row) : a.number - b.number
+          );
+
+          setSeats(mappedSeats);
         } else {
-          toast.error(response.message || 'Không thể tải danh sách ghế.')
-          setSeats([])
+          toast.error(response.message || "Không thể tải danh sách ghế.");
+          setSeats([]);
         }
       } catch (error: any) {
         console.error('Error fetching seats:', error)
@@ -119,7 +129,7 @@ export default function OrganizerSeatsPage() {
       acc[seat.status]++
       return acc
     },
-    { available: 0, reserved: 0, occupied: 0, blocked: 0 } as Record<SeatStatus, number>,
+    { available: 0, reserved: 0, occupied: 0 } as Record<SeatStatus, number>,
   )
 
   // Handle seat click
@@ -152,11 +162,20 @@ export default function OrganizerSeatsPage() {
         return "bg-warning/20 text-warning hover:bg-warning/30 border-warning/30"
       case "occupied":
         return "bg-primary/20 text-primary hover:bg-primary/30 border-primary/30"
-      case "blocked":
-        return "bg-muted text-muted-foreground cursor-not-allowed border-muted"
+      
     }
   }
-
+const getStatusBadgeClass = (status: SeatStatus) => {
+  switch (status) {
+    case "available":
+      return "bg-success/20 text-success border-success/30";
+    case "reserved":
+      return "bg-warning/20 text-warning border-warning/30";
+    case "occupied":
+      return "bg-primary/20 text-primary border-primary/30";
+   
+  }
+};
   // Group seats by row
   const seatsByRow = seats.reduce(
     (acc, seat) => {
@@ -173,13 +192,17 @@ export default function OrganizerSeatsPage() {
 
       <main className="flex-1 p-4 lg:p-6 space-y-6">
         {/* Filters */}
-        <div className="flex flex-wrap gap-4">
+        <div className="flex items-end justify-between gap-4">
+          {/* LEFT: Event select */}
           <div className="w-64">
             <label className="text-sm font-medium mb-1 block">Event</label>
+
             {isLoadingEvents ? (
               <div className="flex items-center gap-2 p-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">Loading events...</span>
+                <span className="text-sm text-muted-foreground">
+                  Loading events...
+                </span>
               </div>
             ) : (
               <Select value={selectedEvent} onValueChange={setSelectedEvent}>
@@ -187,26 +210,28 @@ export default function OrganizerSeatsPage() {
                   <SelectValue placeholder="Chọn sự kiện" />
                 </SelectTrigger>
                 <SelectContent>
-                  {events.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">Chưa có sự kiện nào</div>
-                  ) : (
-                    events.map((event) => (
-                      <SelectItem key={event.eventId} value={event.eventId}>
-                        {event.title}
-                      </SelectItem>
-                    ))
-                  )}
+                  {events.map((event) => (
+                    <SelectItem key={event.eventId} value={event.eventId}>
+                      {event.title}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
           </div>
-          <div className="flex items-end">
-            <Button 
-              variant="outline" 
+
+          {/* RIGHT: Refresh */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
               onClick={refreshSeats}
               disabled={!selectedEvent || isLoadingSeats}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingSeats ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${
+                  isLoadingSeats ? "animate-spin" : ""
+                }`}
+              />
               Refresh
             </Button>
           </div>
@@ -218,9 +243,13 @@ export default function OrganizerSeatsPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Armchair className="h-4 w-4" />
-                {selectedEvent ? events.find(e => e.eventId === selectedEvent)?.title : 'Seat Map'}
+                {selectedEvent
+                  ? events.find((e) => e.eventId === selectedEvent)?.title
+                  : "Seat Map"}
               </CardTitle>
-              <CardDescription>Click on a seat to view details or change status</CardDescription>
+              <CardDescription>
+                Click on a seat to view details or change status
+              </CardDescription>
             </CardHeader>
             <CardContent className="pb-6">
               {isLoadingSeats ? (
@@ -246,17 +275,20 @@ export default function OrganizerSeatsPage() {
                   <div className="space-y-2 overflow-x-auto pb-4">
                     {Object.entries(seatsByRow).map(([row, rowSeats]) => (
                       <div key={row} className="flex items-center gap-2">
-                        <span className="w-6 text-sm font-medium text-muted-foreground flex-shrink-0">{row}</span>
+                        <span className="w-6 text-sm font-medium text-muted-foreground flex-shrink-0">
+                          {row}
+                        </span>
                         <div className="flex gap-1 flex-wrap">
                           {rowSeats.map((seat) => (
                             <button
                               key={seat.id}
-                              onClick={() => handleSeatClick(seat)}
-                              disabled={seat.status === "blocked"}
+                              onClick={() => setSelectedSeat(seat)}
+                              
                               className={cn(
                                 "w-8 h-8 rounded text-xs font-medium border transition-colors flex-shrink-0",
                                 getSeatColor(seat.status),
-                                selectedSeat?.id === seat.id && "ring-2 ring-ring",
+                                selectedSeat?.id === seat.id &&
+                                  "ring-2 ring-ring"
                               )}
                               title={`${seat.row}${seat.number} - ${seat.status}`}
                             >
@@ -270,25 +302,27 @@ export default function OrganizerSeatsPage() {
 
                   {/* Legend */}
                   <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
-                        <span className="text-xs">Available ({seatCounts.available})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
-                        <span className="text-xs">Reserved ({seatCounts.reserved})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-primary/20 border border-primary/30" />
-                        <span className="text-xs">Occupied ({seatCounts.occupied})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-muted border border-muted" />
-                        <span className="text-xs">Blocked ({seatCounts.blocked})</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
+                      <span className="text-xs">
+                        Available ({seatCounts.available})
+                      </span>
                     </div>
-                  </>
-                )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
+                      <span className="text-xs">
+                        Reserved ({seatCounts.reserved})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded bg-primary/20 border border-primary/30" />
+                      <span className="text-xs">
+                        Occupied ({seatCounts.occupied})
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -306,20 +340,23 @@ export default function OrganizerSeatsPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Available</span>
-                  <span className="font-medium text-success">{seatCounts.available}</span>
+                  <span className="font-medium text-success">
+                    {seatCounts.available}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Reserved</span>
-                  <span className="font-medium text-warning">{seatCounts.reserved}</span>
+                  <span className="font-medium text-warning">
+                    {seatCounts.reserved}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Occupied</span>
-                  <span className="font-medium text-primary">{seatCounts.occupied}</span>
+                  <span className="font-medium text-primary">
+                    {seatCounts.occupied}
+                  </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Blocked</span>
-                  <span className="font-medium">{seatCounts.blocked}</span>
-                </div>
+               
               </CardContent>
             </Card>
 
@@ -329,31 +366,23 @@ export default function OrganizerSeatsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Seat Details</CardTitle>
                 </CardHeader>
+
                 <CardContent className="space-y-3 pb-6">
                   <div className="text-center py-2">
                     <p className="text-2xl font-bold">
                       {selectedSeat.row}
                       {selectedSeat.number}
                     </p>
-                    <Badge className="mt-1" variant="secondary">
+
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "mt-1 capitalize",
+                        getStatusBadgeClass(selectedSeat.status)
+                      )}
+                    >
                       {selectedSeat.status}
                     </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Change Status:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(["available", "reserved", "occupied", "blocked"] as SeatStatus[]).map((status) => (
-                        <Button
-                          key={status}
-                          variant={selectedSeat.status === status ? "default" : "outline"}
-                          size="sm"
-                          className="text-xs capitalize"
-                          onClick={() => toggleSeatStatus(selectedSeat.id, status)}
-                        >
-                          {status}
-                        </Button>
-                      ))}
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -368,5 +397,5 @@ export default function OrganizerSeatsPage() {
         </div>
       </main>
     </>
-  )
+  );
 }

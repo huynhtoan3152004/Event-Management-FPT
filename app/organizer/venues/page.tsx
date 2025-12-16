@@ -76,7 +76,17 @@ import { OrganizerHeader } from "@/components/organizer/header";
 
 import type { Venue } from "@/types";
 import { venueService } from "@/lib/services/venue.service";
-
+type VenueFormData = Partial<Venue> & {
+  maxRows?: number;
+  maxSeatsPerRow?: number;
+};
+const FACILITY_MAP: Record<string, { label: string; icon: React.ElementType }> =
+  {
+    projector: { label: "Projector", icon: Tv },
+    sound: { label: "Sound System", icon: Mic2 },
+    ac: { label: "Air Conditioning", icon: Wind },
+    wifi: { label: "WiFi", icon: Wifi },
+  };
 /* -------------------------------------------
    FACILITIES CONFIG (USE ID)
 ------------------------------------------- */
@@ -123,10 +133,17 @@ export default function OrganizerVenuesPage() {
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [deletingVenue, setDeletingVenue] = useState<Venue | null>(null);
 
-  const [formData, setFormData] = useState<Partial<Venue>>({
+  type VenueFormData = Partial<Venue> & {
+    maxRows?: number;
+    maxSeatsPerRow?: number;
+  };
+
+  const [formData, setFormData] = useState<VenueFormData>({
     name: "",
     address: "",
     capacity: 100,
+    maxRows: 10,
+    maxSeatsPerRow: 10,
     facilities: [],
     status: "available",
     description: "",
@@ -178,10 +195,13 @@ export default function OrganizerVenuesPage() {
         name: formData.name!,
         location: formData.address!,
         capacity: formData.capacity!,
+        maxRows: formData.maxRows ?? 0,
+        maxSeatsPerRow: formData.maxSeatsPerRow ?? 0,
         description: formData.description || "",
         facilities: (formData.facilities || []).join(","), // IDs
         status: mapStatusToApi(formData.status),
       };
+
 
       const res = await venueService.create(payload);
 
@@ -193,7 +213,7 @@ export default function OrganizerVenuesPage() {
         const newVenue: Venue = {
           id: v.hallId,
           name: v.name,
-          address: v.location,
+          address: v.location || "",
           capacity: v.capacity,
           status: mapStatusFromApi(v.status),
           facilities: v.facilities ? v.facilities.split(",") : [],
@@ -238,7 +258,7 @@ export default function OrganizerVenuesPage() {
         const updatedVenue: Venue = {
           id: v.hallId,
           name: v.name,
-          address: v.location,
+          address: v.location || "",
           capacity: v.capacity,
           status: mapStatusFromApi(v.status),
           facilities: v.facilities ? v.facilities.split(",") : [],
@@ -288,12 +308,13 @@ export default function OrganizerVenuesPage() {
       name: "",
       address: "",
       capacity: 100,
+      maxRows: 10,
+      maxSeatsPerRow: 10,
       facilities: [],
       status: "available",
       description: "",
     });
   };
-
   /* -------------------------------------------
      OPEN EDIT
   ------------------------------------------- */
@@ -379,7 +400,10 @@ export default function OrganizerVenuesPage() {
         {/* VENUES GRID */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {venues.map((venue) => (
-            <Card key={venue.id} className="hover:shadow-md transition">
+            <Card
+              key={venue.id}
+              className="hover:shadow-md transition flex flex-col justify-between min-h-[170px]"
+            >
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -415,23 +439,42 @@ export default function OrganizerVenuesPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    Capacity: {venue.capacity}
-                  </span>
-
-                  <Badge>
-                    {venue.status.charAt(0).toUpperCase() +
-                      venue.status.slice(1)}
-                  </Badge>
-                </div>
-
                 {venue.description && (
                   <p className="text-xs text-muted-foreground line-clamp-2">
                     {venue.description}
                   </p>
                 )}
+                {venue.facilities && venue.facilities.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {venue.facilities.map((f) => {
+                      const FacilityIcon = FACILITY_MAP[f]?.icon;
+                      const label = FACILITY_MAP[f]?.label;
+
+                      if (!FacilityIcon) return null;
+
+                      return (
+                        <span
+                          key={f}
+                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-muted"
+                        >
+                          <FacilityIcon className="h-3 w-3" />
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-sm pr-3 mb-2">
+                  <span className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    Capacity: {venue.capacity}
+                  </span>
+
+                  <Badge className="px-3 py-1 rounded-md">
+                    {venue.status.charAt(0).toUpperCase() +
+                      venue.status.slice(1)}
+                  </Badge>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -512,8 +555,8 @@ function VenueForm({
   setFormData,
   toggleFacility,
 }: {
-  formData: Partial<Venue>;
-  setFormData: React.Dispatch<React.SetStateAction<Partial<Venue>>>;
+  formData: VenueFormData;
+  setFormData: React.Dispatch<React.SetStateAction<VenueFormData>>;
   toggleFacility: (id: string) => void;
 }) {
   return (
@@ -542,13 +585,7 @@ function VenueForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Capacity</Label>
-          <Input
-            type="number"
-            value={formData.capacity || 100}
-            onChange={(e) =>
-              setFormData({ ...formData, capacity: Number(e.target.value) })
-            }
-          />
+          <Input type="number" value={formData.capacity || 0} disabled />
         </div>
 
         <div>
@@ -569,6 +606,44 @@ function VenueForm({
               <SelectItem value="booked">Booked</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      {/* MAX ROWS + SEATS PER ROW */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Max Rows</Label>
+          <Input
+            type="number"
+            value={formData.maxRows || 0}
+            onChange={(e) => {
+              const maxRows = Number(e.target.value);
+              const seatsPerRow = formData.maxSeatsPerRow || 0;
+
+              setFormData({
+                ...formData,
+                maxRows,
+                capacity: maxRows * seatsPerRow,
+              });
+            }}
+          />
+        </div>
+
+        <div>
+          <Label>Seats Per Row</Label>
+          <Input
+            type="number"
+            value={formData.maxSeatsPerRow || 0}
+            onChange={(e) => {
+              const seatsPerRow = Number(e.target.value);
+              const maxRows = formData.maxRows || 0;
+
+              setFormData({
+                ...formData,
+                maxSeatsPerRow: seatsPerRow,
+                capacity: maxRows * seatsPerRow,
+              });
+            }}
+          />
         </div>
       </div>
 

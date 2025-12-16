@@ -44,14 +44,25 @@ import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const mainNavItems = [
+<<<<<<< Updated upstream
   { label: "Quản lý sự kiện", href: "/organizer/events", icon: Calendar },
+=======
+  { label: "My Events", href: "/organizer/events", icon: Calendar },
+>>>>>>> Stashed changes
 ]
 
 const manageNavItems = [
   { label: "Speakers", href: "/organizer/speakers", icon: Users },
+<<<<<<< Updated upstream
   { label: "Địa điểm", href: "/organizer/venues", icon: MapPin },
   { label: "Ghế", href: "/organizer/seats", icon: Armchair },
 ]
+=======
+  { label: "Venues", href: "/organizer/venues", icon: MapPin },
+  { label: "Seats", href: "/organizer/seats", icon: Armchair },
+  { label: "Manage User", href: "/organizer/Managestaff", icon: Users },
+];
+>>>>>>> Stashed changes
 
 const analyticsNavItems = [{ label: "Reports", href: "/organizer/reports", icon: BarChart3 }]
 
@@ -168,10 +179,6 @@ export function OrganizerSidebar() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/organizer/settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-destructive">

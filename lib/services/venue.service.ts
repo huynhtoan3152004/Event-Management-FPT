@@ -1,12 +1,35 @@
 import apiClient from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 
-export interface VenueRequest {
+/* ============================================
+   REQUEST TYPES
+============================================ */
+
+/** CREATE HALL (theo Swagger POST /api/Halls) */
+export interface CreateVenueRequest {
   name: string;
-  capacity?: number;
-  location?: string;
-  description?: string;
+  location: string;
+  capacity: number;
+  maxRows: number;
+  maxSeatsPerRow: number;
+  description: string;
+  facilities: string;
 }
+
+/** UPDATE HALL (cho phép update từng phần) */
+export interface UpdateVenueRequest {
+  name?: string;
+  location?: string;
+  capacity?: number;
+  maxRows?: number;
+  maxSeatsPerRow?: number;
+  description?: string;
+  facilities?: string;
+}
+
+/* ============================================
+   RESPONSE DTO
+============================================ */
 
 export interface VenueDto {
   hallId: string;
@@ -14,12 +37,21 @@ export interface VenueDto {
   capacity: number;
   location?: string;
   description?: string;
-  status?: string; // <-- thêm
+  status?: string;
+
+  maxRows?: number;
+  maxSeatsPerRow?: number;
   totalSeats?: number;
+
+  facilities?: string;
+
   createdAt?: string;
   updatedAt?: string | null;
-  facilities?: string;
 }
+
+/* ============================================
+   VENUE SERVICE
+============================================ */
 
 export const venueService = {
   /* ---------------------- GET ALL ---------------------- */
@@ -43,20 +75,31 @@ export const venueService = {
   },
 
   /* ---------------------- CREATE ---------------------- */
-  async create(payload: VenueRequest) {
-    const res = await apiClient.post(API_ENDPOINTS.VENUES.CREATE, payload);
+  async create(payload: CreateVenueRequest) {
+    const res = await apiClient.post<{
+      success: boolean;
+      data: VenueDto;
+    }>(API_ENDPOINTS.VENUES.CREATE, payload);
+
     return res.data;
   },
 
   /* ---------------------- UPDATE ---------------------- */
-  async update(id: string, payload: VenueRequest) {
-    const res = await apiClient.put(API_ENDPOINTS.VENUES.UPDATE(id), payload);
+  async update(id: string, payload: UpdateVenueRequest) {
+    const res = await apiClient.put<{
+      success: boolean;
+      data: VenueDto;
+    }>(API_ENDPOINTS.VENUES.UPDATE(id), payload);
+
     return res.data;
   },
 
   /* ---------------------- DELETE ---------------------- */
   async delete(id: string) {
-    const res = await apiClient.delete(API_ENDPOINTS.VENUES.DELETE(id));
+    const res = await apiClient.delete<{
+      success: boolean;
+    }>(API_ENDPOINTS.VENUES.DELETE(id));
+
     return res.data;
   },
 
@@ -72,13 +115,20 @@ export const venueService = {
 
   /* ---------------------- GENERATE SEATS ---------------------- */
   async generateSeats(id: string) {
-    const res = await apiClient.post(API_ENDPOINTS.VENUES.GENERATE_SEATS(id));
+    const res = await apiClient.post<{
+      success: boolean;
+    }>(API_ENDPOINTS.VENUES.GENERATE_SEATS(id));
+
     return res.data;
   },
 
   /* ---------------------- AVAILABILITY ---------------------- */
   async getAvailability(id: string) {
-    const res = await apiClient.get(API_ENDPOINTS.VENUES.AVAILABILITY(id));
+    const res = await apiClient.get<{
+      success: boolean;
+      data: any;
+    }>(API_ENDPOINTS.VENUES.AVAILABILITY(id));
+
     return res.data;
   },
 };

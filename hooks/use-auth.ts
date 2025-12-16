@@ -47,10 +47,10 @@ export function useLogin() {
       const roleId = data.roleId?.toLowerCase();
       switch (roleId) {
         case "student":
-          router.push("/dashboard");
+          router.push("/dashboard/events");
           break;
         case "organizer":
-          router.push("/organizer");
+          router.push("/organizer/events");
           break;
         case "staff":
           router.push("/staff");

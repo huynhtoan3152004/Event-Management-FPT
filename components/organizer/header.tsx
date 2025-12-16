@@ -75,9 +75,6 @@ export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
                 <div className="capitalize mt-1">{user.roleName || user.roleId || 'Organizer'}</div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">Profile Settings</Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive">
                 Logout

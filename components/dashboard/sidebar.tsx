@@ -33,7 +33,10 @@ import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const navItems = [
+<<<<<<< Updated upstream
   { label: "Bảng điều khiển", href: "/dashboard", icon: LayoutDashboard },
+=======
+>>>>>>> Stashed changes
   { label: "Events", href: "/dashboard/events", icon: Calendar },
   { label: "Vé của bạn", href: "/dashboard/tickets", icon: Ticket },
   { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
@@ -81,12 +84,6 @@ export function DashboardSidebar() {
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings">
-              <Link href="/dashboard/settings">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             {isLoading ? (
@@ -120,7 +117,7 @@ export function DashboardSidebar() {
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/settings">
                       <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                      Profile Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
