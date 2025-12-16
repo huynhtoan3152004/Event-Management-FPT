@@ -3,21 +3,20 @@
    Using shadcn Sidebar for consistent UI
    ============================================ */
 
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   Calendar,
   Armchair,
   BarChart3,
   Users,
   MapPin,
-  Settings,
   LogOut,
   ChevronRight,
-} from "lucide-react"
+} from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -30,73 +29,83 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useUser } from "@/hooks/use-user"
-import { useLogout } from "@/hooks/use-auth"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/dropdown-menu";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser } from "@/hooks/use-user";
+import { useLogout } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
+
+/* =========================
+   Navigation config
+   ========================= */
 
 const mainNavItems = [
-<<<<<<< Updated upstream
   { label: "Quản lý sự kiện", href: "/organizer/events", icon: Calendar },
-=======
-  { label: "My Events", href: "/organizer/events", icon: Calendar },
->>>>>>> Stashed changes
-]
+];
 
 const manageNavItems = [
   { label: "Speakers", href: "/organizer/speakers", icon: Users },
-<<<<<<< Updated upstream
   { label: "Địa điểm", href: "/organizer/venues", icon: MapPin },
   { label: "Ghế", href: "/organizer/seats", icon: Armchair },
-]
-=======
-  { label: "Venues", href: "/organizer/venues", icon: MapPin },
-  { label: "Seats", href: "/organizer/seats", icon: Armchair },
-  { label: "Manage User", href: "/organizer/Managestaff", icon: Users },
+  { label: "Quản lý người dùng", href: "/organizer/Managestaff", icon: Users },
 ];
->>>>>>> Stashed changes
 
-const analyticsNavItems = [{ label: "Reports", href: "/organizer/reports", icon: BarChart3 }]
+const analyticsNavItems = [
+  { label: "Báo cáo", href: "/organizer/reports", icon: BarChart3 },
+];
+
+/* =========================
+   Component
+   ========================= */
 
 export function OrganizerSidebar() {
-  const pathname = usePathname()
-  const { user, isLoading } = useUser()
-  const { logout } = useLogout()
+  const pathname = usePathname();
+  const { user, isLoading } = useUser();
+  const { logout } = useLogout();
 
-  const isActive = (href: string) => {
-    return pathname === href || (href !== "/organizer" && pathname.startsWith(href))
-  }
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/organizer" && pathname.startsWith(href));
 
   return (
     <Sidebar collapsible="icon" className="border-r">
+      {/* Header */}
       <SidebarHeader className="border-b p-3">
         <Link href="/organizer/events" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <span className="text-xs font-bold text-foreground">FPU</span>
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold text-foreground">FPTU Events</span>
-            <span className="text-xs text-muted-foreground">Organizer Panel</span>
+            <span className="text-sm font-semibold text-foreground">
+              FPTU Events
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Organizer Panel
+            </span>
           </div>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Main Navigation */}
+        {/* Main */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                  >
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -108,14 +117,18 @@ export function OrganizerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Manage Section */}
+        {/* Manage */}
         <SidebarGroup>
           <SidebarGroupLabel>Quản lý</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {manageNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                  >
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -127,14 +140,18 @@ export function OrganizerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Analytics Section */}
+        {/* Analytics */}
         <SidebarGroup>
           <SidebarGroupLabel>Thống kê</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {analyticsNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                  >
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -147,13 +164,14 @@ export function OrganizerSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Footer */}
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             {isLoading ? (
               <SidebarMenuButton className="h-auto py-2" disabled>
                 <Skeleton className="h-6 w-6 rounded-full" />
-                <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden gap-1">
+                <div className="flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
                   <Skeleton className="h-3 w-20" />
                   <Skeleton className="h-2 w-16" />
                 </div>
@@ -163,12 +181,19 @@ export function OrganizerSidebar() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton className="h-auto py-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
-                      <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage
+                        src={user.avatar || "/placeholder-user.jpg"}
+                        alt={user.name}
+                      />
+                      <AvatarFallback className="text-xs">
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden">
+                    <div className="flex flex-col text-xs group-data-[collapsible=icon]:hidden">
                       <span className="font-medium">{user.name}</span>
-                      <span className="text-muted-foreground capitalize">{user.roleName || user.roleId || 'Organizer'}</span>
+                      <span className="text-muted-foreground capitalize">
+                        {user.roleName || "Organizer"}
+                      </span>
                     </div>
                     <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
@@ -178,10 +203,10 @@ export function OrganizerSidebar() {
                     <div className="font-medium">{user.email}</div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
@@ -201,5 +226,5 @@ export function OrganizerSidebar() {
 
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
