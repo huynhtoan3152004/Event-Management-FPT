@@ -572,7 +572,7 @@ export default function StudentEventDetailPage() {
                       
                       {hasRegistered ? (
                         <p className="text-sm text-muted-foreground">
-                          Bạn đã đăng ký, không thể chọn ghế. Ghế sẽ do hệ thống/ban tổ chức sắp xếp.
+                          Bạn đã đăng ký, không thể chọn ghế.
                         </p>
                       ) : isLoadingSeats ? (
                         <div className="flex items-center justify-center py-4">

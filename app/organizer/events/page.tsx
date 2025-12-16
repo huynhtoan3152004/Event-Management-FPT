@@ -28,6 +28,32 @@ export default function OrganizerEventsPage() {
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null)
   const { user } = useUser()
 
+  // Helper function to check if event is currently ongoing
+  const isEventOngoing = (event: EventListItem): boolean => {
+    const now = new Date()
+    const startDateTime = new Date(`${event.date}T${event.startTime}`)
+    const endDateTime = new Date(`${event.date}T${event.endTime}`)
+    
+    // Event is ongoing if: status is published AND current time is between start and end
+    return (
+      event.status === "published" &&
+      now >= startDateTime &&
+      now <= endDateTime
+    )
+  }
+
+  // Helper function to check if event is upcoming (chưa bắt đầu)
+  const isEventUpcoming = (event: EventListItem): boolean => {
+    const now = new Date()
+    const startDateTime = new Date(`${event.date}T${event.startTime}`)
+    
+    // Event is upcoming if: status is published AND current time is before start
+    return (
+      event.status === "published" &&
+      now < startDateTime
+    )
+  }
+
   // Fetch events của organizer hiện tại
   // Note: Backend tự động publish events khi đủ điều kiện (status = draft/pending và registrationStart <= now)
   // Không cần gọi API publish thủ công ở frontend
@@ -40,17 +66,29 @@ export default function OrganizerEventsPage() {
         organizerId: user.userId, // Chỉ lấy events của organizer hiện tại
         pageNumber: 1,
         pageSize: 100, // Lấy nhiều để hiển thị tất cả
-        status: activeTab === "all" ? undefined : activeTab, // Filter theo status
+        status: activeTab === "all" || activeTab === "active" ? undefined : activeTab, // active sẽ filter sau
       })
       
       if (response.success && response.data) {
-        setEvents(response.data)
+        let filteredData = response.data
+        
+        // Filter upcoming events (sắp diễn ra - chưa bắt đầu)
+        if (activeTab === "published") {
+          filteredData = response.data.filter(isEventUpcoming)
+        }
+        
+        // Filter ongoing events (đang diễn ra)
+        if (activeTab === "active") {
+          filteredData = response.data.filter(isEventOngoing)
+        }
+        
+        setEvents(filteredData)
         
         // Debug: Log status của events để kiểm tra (chỉ trong development)
         if (process.env.NODE_ENV === 'development') {
           console.log("Events status breakdown:", {
-            total: response.data.length,
-            byStatus: response.data.reduce((acc: Record<string, number>, event) => {
+            total: filteredData.length,
+            byStatus: filteredData.reduce((acc: Record<string, number>, event) => {
               acc[event.status] = (acc[event.status] || 0) + 1
               return acc
             }, {}),
@@ -145,7 +183,7 @@ export default function OrganizerEventsPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex bg-muted/30 p-1 rounded-lg shadow-sm">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex bg-muted/30 p-1 rounded-lg shadow-sm">
             <TabsTrigger 
               value="all" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
@@ -163,6 +201,12 @@ export default function OrganizerEventsPage() {
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
             >
               Sắp diễn ra 
+            </TabsTrigger>
+            <TabsTrigger 
+              value="active"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
+            >
+              Đang diễn ra
             </TabsTrigger>
             <TabsTrigger 
               value="completed"
@@ -258,12 +302,20 @@ function EventManagementCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
         <Badge className="absolute top-3 left-3 bg-primary/90 backdrop-blur-sm capitalize shadow-lg border-0 z-10">
-          {event.status === 'published' ? 'Sắp diễn ra ' : 
-           event.status === 'draft' ? 'Bản nháp' :
-           event.status === 'pending' ? 'Chờ duyệt' :
-           event.status === 'cancelled' ? 'Đã hủy' :
-           event.status === 'completed' ? 'Hoàn thành' :
-           event.status}
+          {(() => {
+            const now = new Date()
+            const startDateTime = new Date(`${event.date}T${event.startTime}`)
+            const endDateTime = new Date(`${event.date}T${event.endTime}`)
+            const isOngoing = event.status === 'published' && now >= startDateTime && now <= endDateTime
+            
+            if (isOngoing) return 'Đang diễn ra'
+            if (event.status === 'published') return 'Sắp diễn ra'
+            if (event.status === 'draft') return 'Bản nháp'
+            if (event.status === 'pending') return 'Chờ duyệt'
+            if (event.status === 'cancelled') return 'Đã hủy'
+            if (event.status === 'completed') return 'Hoàn thành'
+            return event.status
+          })()}
         </Badge>
 
         {/* Actions Menu */}

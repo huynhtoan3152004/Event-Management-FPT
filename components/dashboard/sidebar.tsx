@@ -33,10 +33,7 @@ import { useLogout } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const navItems = [
-<<<<<<< Updated upstream
   { label: "Bảng điều khiển", href: "/dashboard", icon: LayoutDashboard },
-=======
->>>>>>> Stashed changes
   { label: "Events", href: "/dashboard/events", icon: Calendar },
   { label: "Vé của bạn", href: "/dashboard/tickets", icon: Ticket },
   { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
