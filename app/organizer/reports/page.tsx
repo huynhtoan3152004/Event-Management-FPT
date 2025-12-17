@@ -6,7 +6,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, TrendingUp, Users, Calendar, BarChart3, FileSpreadsheet, FileText, Filter, Loader2, XCircle, AlertCircle } from "lucide-react"
+import { Download, TrendingUp, Users, Calendar, FileSpreadsheet, FileText, Filter, XCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,8 +17,6 @@ import { OrganizerHeader } from "@/components/organizer/header"
 import { reportService, SystemSummaryResponse, MonthlyReportItem } from "@/lib/services/report.service"
 import { toast } from "react-toastify"
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,9 +24,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
 } from "recharts"
 
@@ -40,26 +35,6 @@ const defaultRegistrationTrendData = [
   { month: "Th4", registrations: 320, attendance: 280 },
   { month: "Th5", registrations: 280, attendance: 240 },
   { month: "Th6", registrations: 400, attendance: 350 },
-]
-
-const eventTypeData = [
-  { name: "Workshop", value: 35, color: "hsl(var(--chart-1))" },
-  { name: "Talkshow", value: 25, color: "hsl(var(--chart-2))" },
-  { name: "Cuộc thi", value: 20, color: "hsl(var(--chart-3))" },
-  { name: "Lễ hội", value: 15, color: "hsl(var(--chart-4))" },
-  { name: "Khác", value: 5, color: "hsl(var(--chart-5))" },
-]
-
-const checkInByHourData = [
-  { hour: "08:00", checkIns: 45 },
-  { hour: "09:00", checkIns: 120 },
-  { hour: "10:00", checkIns: 85 },
-  { hour: "11:00", checkIns: 60 },
-  { hour: "12:00", checkIns: 30 },
-  { hour: "13:00", checkIns: 55 },
-  { hour: "14:00", checkIns: 90 },
-  { hour: "15:00", checkIns: 70 },
-  { hour: "16:00", checkIns: 40 },
 ]
 
 // Event report data
@@ -287,7 +262,7 @@ export default function ReportsPage() {
                   <TrendingUp className="h-4 w-4 text-warning" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground mb-1">Tỷ lệ tham dự trung bình</p>
+                  <p className="text-xs text-muted-foreground mb-1">Tỷ lệ tham dự </p>
                   <p className="text-2xl font-bold text-foreground">{stats.averageAttendanceRate}%</p>
                   <Progress value={stats.averageAttendanceRate} className="h-1 mt-2 w-full" />
                 </div>
@@ -331,112 +306,12 @@ export default function ReportsPage() {
         </div>
 
         {/* Charts */}
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* Registration Trends */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Xu hướng đăng ký & tham dự</CardTitle>
-                  <CardDescription className="text-xs">So sánh theo tháng</CardDescription>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={registrationTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Line
-                      type="monotone"
-                      dataKey="registrations"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ fill: "hsl(var(--primary))" }}
-                      name="Đăng ký"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="attendance"
-                      stroke="hsl(var(--success))"
-                      strokeWidth={2}
-                      dot={{ fill: "hsl(var(--success))" }}
-                      name="Tham dự"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Event Type Distribution */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Sự kiện theo loại</CardTitle>
-                  <CardDescription className="text-xs">Tỷ lệ phân bổ</CardDescription>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={eventTypeData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}%`}
-                      labelLine={false}
-                    >
-                      {eventTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Check-in by Hour */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Check-in theo giờ (sự kiện gần nhất)</CardTitle>
-                <CardDescription className="text-xs">Khung giờ cao điểm tham dự</CardDescription>
+                <CardTitle className="text-base">Xu hướng đăng ký & tham dự</CardTitle>
+                <CardDescription className="text-xs">So sánh theo tháng</CardDescription>
               </div>
               <Button variant="ghost" size="sm">
                 <Download className="h-4 w-4" />
@@ -444,11 +319,11 @@ export default function ReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-48">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={checkInByHourData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                  <XAxis dataKey="hour" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <LineChart data={registrationTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip
                     contentStyle={{
@@ -458,8 +333,24 @@ export default function ReportsPage() {
                       fontSize: "12px",
                     }}
                   />
-                  <Bar dataKey="checkIns" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Check-ins" />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                  <Line
+                    type="monotone"
+                    dataKey="registrations"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--primary))" }}
+                    name="Đăng ký"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="attendance"
+                    stroke="hsl(var(--success))"
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--success))" }}
+                    name="Tham dự"
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
