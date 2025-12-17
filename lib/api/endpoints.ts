@@ -99,6 +99,7 @@ export const API_ENDPOINTS = {
     EVENTS: "/reports/events",
     SYSTEM_SUMMARY: "/api/Reports/system-summary",
     MONTHLY: "/api/Reports/monthly",
+    LIST_EVENTS: "/api/Reports/ListEvents",
     ATTENDANCE: (eventId: string) => `/reports/attendance/${eventId}`,
     EXPORT_CSV: (eventId: string) => `/reports/export/csv/${eventId}`,
     EXPORT_PDF: (eventId: string) => `/reports/export/pdf/${eventId}`,

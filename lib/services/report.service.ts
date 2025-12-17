@@ -62,6 +62,29 @@ export interface MonthlyReportParams {
   toDate?: string // date
 }
 
+export interface EventReportItem {
+  eventName: string
+  eventDate: string
+  totalRegistrations: number
+  participatedCount: number
+  notParticipatedCount: number
+  participatedPercent: number
+  notParticipatedPercent: number
+  abandonedCount: number
+}
+
+export interface EventListReportResponse {
+  success: boolean
+  message: string
+  data: EventReportItem[]
+  errors: null | any
+}
+
+export interface EventListReportParams {
+  fromDate?: string // date
+  toDate?: string // date
+}
+
 export const reportService = {
   /**
    * Lấy system summary report
@@ -78,6 +101,15 @@ export const reportService = {
   async getMonthlyReport(params?: MonthlyReportParams): Promise<MonthlyReportResponse> {
     const endpoint = buildEndpoint(API_ENDPOINTS.REPORTS.MONTHLY, params)
     const response = await apiClient.get<MonthlyReportResponse>(endpoint)
+    return response.data
+  },
+
+  /**
+   * Lấy danh sách events report
+   */
+  async getEventListReport(params?: EventListReportParams): Promise<EventListReportResponse> {
+    const endpoint = buildEndpoint(API_ENDPOINTS.REPORTS.LIST_EVENTS, params)
+    const response = await apiClient.get<EventListReportResponse>(endpoint)
     return response.data
   },
 }
