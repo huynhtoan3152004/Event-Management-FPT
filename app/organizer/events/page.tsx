@@ -395,11 +395,21 @@ function EventManagementCard({
         </div>
         )}
 
-        <Link href={`/organizer/events/${event.eventId}`} className="block mt-auto">
-          <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300">
+        {event.status === "completed" || event.status === "cancelled" ? (
+          <Button 
+            variant="outline" 
+            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm mt-auto cursor-default" 
+            disabled
+          >
             Quản lý sự kiện
           </Button>
-        </Link>
+        ) : (
+          <Link href={`/organizer/events/${event.eventId}`} className="block mt-auto">
+            <Button variant="outline" className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300">
+              Quản lý sự kiện
+            </Button>
+          </Link>
+        )}
       </CardContent>
     </Card>
   )

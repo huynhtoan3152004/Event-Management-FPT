@@ -61,7 +61,86 @@ export default function EditEventPage() {
   const [isSpeakersLoading, setIsSpeakersLoading] = useState(false)
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([])
   
+  // Validation states
+  const [dateError, setDateError] = useState<string>("")
+  const [timeError, setTimeError] = useState<string>("")
+  const [registrationStartError, setRegistrationStartError] = useState<string>("")
+  const [registrationEndError, setRegistrationEndError] = useState<string>("")
+  
   const formRef = useRef<HTMLFormElement>(null)
+  
+  // Get today's date in YYYY-MM-DD format for min attribute
+  const today = new Date().toISOString().split('T')[0]
+  
+  // Check if current event date is in the past (to allow editing old events)
+  const isCurrentDateInPast = eventData?.date ? (new Date(eventData.date) < new Date(today)) : false
+  
+  // Validate time range
+  const validateTimeRange = (startTime: string, endTime: string) => {
+    if (!startTime || !endTime) {
+      setTimeError("")
+      return
+    }
+    
+    const startTimeParts = startTime.split(':').map(Number)
+    const endTimeParts = endTime.split(':').map(Number)
+    const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
+    const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
+    
+    if (endMinutes <= startMinutes) {
+      setTimeError("Giờ kết thúc phải sau giờ bắt đầu")
+    } else {
+      setTimeError("")
+    }
+  }
+
+  // Validate registration dates must be after event date
+  const validateRegistrationDate = (registrationDate: string, field: 'start' | 'end') => {
+    if (!registrationDate) {
+      if (field === 'start') {
+        setRegistrationStartError("")
+      } else {
+        setRegistrationEndError("")
+      }
+      return
+    }
+
+    const dateInput = document.getElementById('date') as HTMLInputElement
+    const eventDate = dateInput?.value
+
+    if (!eventDate) {
+      if (field === 'start') {
+        setRegistrationStartError("")
+      } else {
+        setRegistrationEndError("")
+      }
+      return
+    }
+
+    const regDate = new Date(registrationDate)
+    const evtDate = new Date(eventDate)
+    evtDate.setHours(0, 0, 0, 0)
+    
+    // Set registration date to start of day for fair comparison
+    const regDateOnly = new Date(regDate)
+    regDateOnly.setHours(0, 0, 0, 0)
+
+    // Registration date must be BEFORE event date (so people can register before the event)
+    if (regDateOnly >= evtDate) {
+      const errorMsg = "Ngày đăng ký phải trước ngày diễn ra sự kiện"
+      if (field === 'start') {
+        setRegistrationStartError(errorMsg)
+      } else {
+        setRegistrationEndError(errorMsg)
+      }
+    } else {
+      if (field === 'start') {
+        setRegistrationStartError("")
+      } else {
+        setRegistrationEndError("")
+      }
+    }
+  }
 
   // Fetch event data
   useEffect(() => {
@@ -225,6 +304,53 @@ export default function EditEventPage() {
         return
       }
 
+      // Validate date không được ở quá khứ
+      const eventDate = new Date(payload.date)
+      const todayDate = new Date()
+      todayDate.setHours(0, 0, 0, 0)
+      if (eventDate < todayDate) {
+        toast.error("Ngày sự kiện không được ở quá khứ")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Validate EndTime > StartTime
+      const startTimeParts = payload.startTime.split(':').map(Number)
+      const endTimeParts = payload.endTime.split(':').map(Number)
+      const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
+      const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
+      
+      if (endMinutes <= startMinutes) {
+        toast.error("Thời gian kết thúc phải sau thời gian bắt đầu")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Validate registration dates must be before event date
+      if (payload.registrationStart) {
+        const regStartDate = new Date(payload.registrationStart)
+        const evtDate = new Date(payload.date)
+        evtDate.setHours(0, 0, 0, 0)
+        regStartDate.setHours(0, 0, 0, 0)
+        if (regStartDate >= evtDate) {
+          toast.error("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      if (payload.registrationEnd) {
+        const regEndDate = new Date(payload.registrationEnd)
+        const evtDate = new Date(payload.date)
+        evtDate.setHours(0, 0, 0, 0)
+        regEndDate.setHours(0, 0, 0, 0)
+        if (regEndDate >= evtDate) {
+          toast.error("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
+          setIsSubmitting(false)
+          return
+        }
+      }
+
       await eventService.updateEvent(eventId, payload)
       toast.success("Cập nhật sự kiện thành công!")
       router.push("/organizer/events")
@@ -308,7 +434,47 @@ export default function EditEventPage() {
                   <Label htmlFor="date">Ngày *</Label>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <Input id="date" name="date" type="date" required />
+                    <div className="flex-1">
+                      <Input 
+                        id="date" 
+                        name="date" 
+                        type="date" 
+                        required 
+                        min={isCurrentDateInPast ? undefined : today}
+                        className={dateError ? 'border-destructive' : ''}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value
+                          if (selectedDate) {
+                            const eventDate = new Date(selectedDate)
+                            const todayDate = new Date()
+                            todayDate.setHours(0, 0, 0, 0)
+                            if (eventDate < todayDate) {
+                              setDateError("Ngày không được chọn ngày trong quá khứ")
+                            } else {
+                              setDateError("")
+                            }
+                            
+                            // Re-validate registration dates when event date changes
+                            const regStartInput = document.getElementById('registrationStart') as HTMLInputElement
+                            const regEndInput = document.getElementById('registrationEnd') as HTMLInputElement
+                            if (regStartInput?.value) {
+                              validateRegistrationDate(regStartInput.value, 'start')
+                            }
+                            if (regEndInput?.value) {
+                              validateRegistrationDate(regEndInput.value, 'end')
+                            }
+                          } else {
+                            setDateError("")
+                          }
+                        }}
+                      />
+                      {dateError && (
+                        <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                          <span>⚠</span>
+                          {dateError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -316,7 +482,23 @@ export default function EditEventPage() {
                   <Label htmlFor="startTime">Giờ bắt đầu *</Label>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Input id="startTime" name="startTime" type="time" required />
+                    <Input 
+                      id="startTime" 
+                      name="startTime" 
+                      type="time" 
+                      required 
+                      className={timeError ? 'border-destructive' : ''}
+                      onChange={(e) => {
+                        const startTime = e.target.value
+                        const endTimeInput = document.getElementById('endTime') as HTMLInputElement
+                        const endTime = endTimeInput?.value
+                        if (startTime && endTime) {
+                          validateTimeRange(startTime, endTime)
+                        } else {
+                          setTimeError("")
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -324,7 +506,31 @@ export default function EditEventPage() {
                   <Label htmlFor="endTime">Giờ kết thúc *</Label>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Input id="endTime" name="endTime" type="time" required />
+                    <div className="flex-1">
+                      <Input 
+                        id="endTime" 
+                        name="endTime" 
+                        type="time" 
+                        required 
+                        className={timeError ? 'border-destructive' : ''}
+                        onChange={(e) => {
+                          const endTime = e.target.value
+                          const startTimeInput = document.getElementById('startTime') as HTMLInputElement
+                          const startTime = startTimeInput?.value
+                          if (startTime && endTime) {
+                            validateTimeRange(startTime, endTime)
+                          } else {
+                            setTimeError("")
+                          }
+                        }}
+                      />
+                      {timeError && (
+                        <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                          <span>⚠</span>
+                          {timeError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -334,7 +540,7 @@ export default function EditEventPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <Input id="location" name="location" placeholder="Hall A, FPTU HCMC" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Nếu chọn Hall phía dưới, Location có thể để trống.</p>
+                  <p className="text-xs text-muted-foreground mb-5">Nếu chọn Hall phía dưới, Location có thể để trống.</p>
                 </div>
               </CardContent>
             </Card>
@@ -347,15 +553,43 @@ export default function EditEventPage() {
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="registrationStart">Registration Start</Label>
-                  <Input id="registrationStart" name="registrationStart" type="datetime-local" />
+                  <Input 
+                    id="registrationStart" 
+                    name="registrationStart" 
+                    type="datetime-local" 
+                    className={registrationStartError ? 'border-destructive' : ''}
+                    onChange={(e) => {
+                      validateRegistrationDate(e.target.value, 'start')
+                    }}
+                  />
+                  {registrationStartError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span>
+                      {registrationStartError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="registrationEnd">Registration End</Label>
-                  <Input id="registrationEnd" name="registrationEnd" type="datetime-local" />
+                  <Input 
+                    id="registrationEnd" 
+                    name="registrationEnd" 
+                    type="datetime-local" 
+                    className={registrationEndError ? 'border-destructive' : ''}
+                    onChange={(e) => {
+                      validateRegistrationDate(e.target.value, 'end')
+                    }}
+                  />
+                  {registrationEndError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span>
+                      {registrationEndError}
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 mb-5">
                   <Label htmlFor="maxTicketsPerUser">MaxTicketsPerUser</Label>
                   <Input
                     id="maxTicketsPerUser"
@@ -518,7 +752,7 @@ export default function EditEventPage() {
                       }
                     }}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-5">
                     Kích thước tối đa: 5MB. Định dạng: JPG, PNG, GIF. Để trống để giữ nguyên ảnh hiện tại.
                   </p>
                 </div>
@@ -546,7 +780,7 @@ export default function EditEventPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full rounded-full"
+                  className="w-full rounded-full mb-5"
                   onClick={() => router.push("/organizer/events")}
                   disabled={isSubmitting}
                 >

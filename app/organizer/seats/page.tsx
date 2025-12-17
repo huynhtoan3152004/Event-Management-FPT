@@ -6,6 +6,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Armchair, RefreshCw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -29,6 +30,8 @@ interface SeatData {
 
 export default function OrganizerSeatsPage() {
   const { user } = useUser()
+  const searchParams = useSearchParams()
+  const eventIdFromUrl = searchParams.get('eventId')
   const [events, setEvents] = useState<EventListItem[]>([])
   const [selectedEvent, setSelectedEvent] = useState<string>("")
   const [seats, setSeats] = useState<SeatData[]>([])
@@ -51,8 +54,10 @@ export default function OrganizerSeatsPage() {
         
         if (response.success && response.data) {
           setEvents(response.data)
-          // Tự động chọn event đầu tiên nếu có
-          if (response.data.length > 0 && !selectedEvent) {
+          // Ưu tiên chọn event từ URL query param, nếu không có thì chọn event đầu tiên
+          if (eventIdFromUrl && response.data.some(e => e.eventId === eventIdFromUrl)) {
+            setSelectedEvent(eventIdFromUrl)
+          } else if (response.data.length > 0 && !selectedEvent) {
             setSelectedEvent(response.data[0].eventId)
           }
         }
@@ -65,7 +70,7 @@ export default function OrganizerSeatsPage() {
     }
 
     fetchEvents()
-  }, [user?.userId])
+  }, [user?.userId, eventIdFromUrl])
 
   // Fetch seats khi chọn event
   useEffect(() => {
