@@ -60,6 +60,8 @@ export default function CreateEventPage() {
   const [timeError, setTimeError] = useState<string>("")
   const [registrationStartError, setRegistrationStartError] = useState<string>("")
   const [registrationEndError, setRegistrationEndError] = useState<string>("")
+  const [titleError, setTitleError] = useState<string>("")
+  const [locationError, setLocationError] = useState<string>("")
   
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split('T')[0]
@@ -253,14 +255,22 @@ export default function CreateEventPage() {
     try {
       setIsSubmitting(true)
 
+      // Reset validation errors
+      setTitleError("")
+      setDateError("")
+      setTimeError("")
+      setLocationError("")
+      setRegistrationStartError("")
+      setRegistrationEndError("")
+
       // Extract values
       const payload = {
-        title: formData.get("title") as string,
-        description: (formData.get("description") as string) || undefined,
+        title: (formData.get("title") as string)?.trim() || "",
+        description: (formData.get("description") as string)?.trim() || undefined,
         date: formData.get("date") as string,
         startTime: formData.get("startTime") as string,
         endTime: formData.get("endTime") as string,
-        location: (formData.get("location") as string) || undefined,
+        location: (formData.get("location") as string)?.trim() || undefined,
         hallId: selectedHallId || undefined,
         // clubName: (formData.get("clubName") as string) || undefined,
         registrationStart: (formData.get("registrationStart") as string) || undefined,
@@ -277,44 +287,65 @@ export default function CreateEventPage() {
         speakerIds: selectedSpeakerIds,
       }
 
-      if (!payload.title || !payload.date || !payload.startTime || !payload.endTime) {
-        toast.error("Vui lòng nhập đủ Title, Date, StartTime, EndTime")
-        setIsSubmitting(false)
-        return
+      // Validate required fields
+      let hasError = false
+
+      if (!payload.title || payload.title.trim().length === 0) {
+        setTitleError("Tiêu đề là bắt buộc")
+        hasError = true
+      } else if (payload.title.trim().length < 3) {
+        setTitleError("Tiêu đề phải có ít nhất 3 ký tự")
+        hasError = true
       }
 
-      // Validate date không được ở quá khứ
-      const eventDate = new Date(payload.date)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      if (eventDate < today) {
-        toast.error("Ngày sự kiện không được ở quá khứ")
-        setIsSubmitting(false)
-        return
+      if (!payload.date) {
+        setDateError("Ngày sự kiện là bắt buộc")
+        hasError = true
+      } else {
+        // Validate date không được ở quá khứ
+        const eventDate = new Date(payload.date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        if (eventDate < today) {
+          setDateError("Ngày sự kiện không được ở quá khứ")
+          hasError = true
+        }
       }
 
-      // Validate EndTime > StartTime
-      const startTimeParts = payload.startTime.split(':').map(Number)
-      const endTimeParts = payload.endTime.split(':').map(Number)
-      const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
-      const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
-      
-      if (endMinutes <= startMinutes) {
-        toast.error("Thời gian kết thúc phải sau thời gian bắt đầu")
-        setIsSubmitting(false)
-        return
+      if (!payload.startTime) {
+        setTimeError("Giờ bắt đầu là bắt buộc")
+        hasError = true
+      } else if (!payload.endTime) {
+        setTimeError("Giờ kết thúc là bắt buộc")
+        hasError = true
+      } else {
+        // Validate EndTime > StartTime
+        const startTimeParts = payload.startTime.split(':').map(Number)
+        const endTimeParts = payload.endTime.split(':').map(Number)
+        const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
+        const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
+        
+        if (endMinutes <= startMinutes) {
+          setTimeError("Giờ kết thúc phải sau giờ bắt đầu")
+          hasError = true
+        }
       }
 
-      // Validate registration dates must be before event date
+      // Validate location hoặc hallId phải có ít nhất một
+      if (!payload.location && !payload.hallId) {
+        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
+        hasError = true
+      }
+
+      // Validate registration dates
       if (payload.registrationStart) {
         const regStartDate = new Date(payload.registrationStart)
         const evtDate = new Date(payload.date)
         evtDate.setHours(0, 0, 0, 0)
         regStartDate.setHours(0, 0, 0, 0)
         if (regStartDate >= evtDate) {
-          toast.error("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
-          setIsSubmitting(false)
-          return
+          setRegistrationStartError("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
+          hasError = true
         }
       }
 
@@ -324,11 +355,26 @@ export default function CreateEventPage() {
         evtDate.setHours(0, 0, 0, 0)
         regEndDate.setHours(0, 0, 0, 0)
         if (regEndDate >= evtDate) {
-          toast.error("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
-          setIsSubmitting(false)
-          return
+          setRegistrationEndError("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
+          hasError = true
+        }
+        
+        // Validate registrationEnd >= registrationStart
+        if (payload.registrationStart) {
+          const regStartDate = new Date(payload.registrationStart)
+          if (regEndDate < regStartDate) {
+            setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký")
+            hasError = true
+          }
         }
       }
+
+      if (hasError) {
+        toast.error("Vui lòng kiểm tra và điền đủ thông tin cần thiết")
+        setIsSubmitting(false)
+        return
+      }
+
 
       const response = await postEvent(payload)
       console.log("Event created response:", response)
@@ -467,8 +513,24 @@ export default function CreateEventPage() {
                     name="title" 
                     placeholder="FPTU Tech Summit 2025" 
                     required 
-                    className="h-11 border-2 focus:border-primary transition-colors"
+                    className={`h-11 border-2 focus:border-primary transition-colors ${titleError ? 'border-destructive' : ''}`}
+                    onChange={(e) => {
+                      const value = e.target.value.trim()
+                      if (!value || value.length === 0) {
+                        setTitleError("Tiêu đề là bắt buộc")
+                      } else if (value.length < 3) {
+                        setTitleError("Tiêu đề phải có ít nhất 3 ký tự")
+                      } else {
+                        setTitleError("")
+                      }
+                    }}
                   />
+                  {titleError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span>
+                      {titleError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
@@ -585,14 +647,28 @@ export default function CreateEventPage() {
                 <div className="space-y-2">
                   <Label htmlFor="location" className="text-sm font-semibold flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    Địa điểm
+                    Địa điểm {!selectedHallId && <span className="text-destructive">*</span>}
                   </Label>
                   <Input 
                     id="location" 
                     name="location" 
                     placeholder="Hall A, FPTU HCMC" 
-                    className="h-11 border-2 focus:border-primary transition-colors"
+                    className={`h-11 border-2 focus:border-primary transition-colors ${locationError ? 'border-destructive' : ''}`}
+                    onChange={(e) => {
+                      const value = e.target.value.trim()
+                      if (!selectedHallId && (!value || value.length === 0)) {
+                        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
+                      } else {
+                        setLocationError("")
+                      }
+                    }}
                   />
+                  {locationError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span>
+                      {locationError}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">Nếu chọn Hall phía dưới, Location có thể để trống.</p>
                 </div>
               </CardContent>
@@ -668,13 +744,29 @@ export default function CreateEventPage() {
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hallId">Hall (tuỳ chọn)</Label>
+                  <Label htmlFor="hallId">Hall {!locationError && <span className="text-muted-foreground">(tuỳ chọn)</span>}</Label>
                   {isHallsLoading ? (
                     <Skeleton className="h-10 w-full" />
                   ) : halls.length > 0 ? (
                     <Select
                       value={selectedHallId ?? undefined}
-                      onValueChange={(value) => setSelectedHallId(value as string)}
+                      onValueChange={(value) => {
+                        if (value === "__none") {
+                          setSelectedHallId(undefined)
+                        } else {
+                          setSelectedHallId(value as string)
+                        }
+                        // Clear location error if hall is selected
+                        if (value !== "__none") {
+                          setLocationError("")
+                        } else {
+                          // Re-validate location if hall is deselected
+                          const locationInput = document.getElementById('location') as HTMLInputElement
+                          if (locationInput && (!locationInput.value || locationInput.value.trim().length === 0)) {
+                            setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
+                          }
+                        }
+                      }}
                     >
                       <SelectTrigger id="hallId">
                         <SelectValue placeholder="Chọn hall (hoặc bỏ trống)" />
