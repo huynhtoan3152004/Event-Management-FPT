@@ -11,15 +11,22 @@ export interface SystemSummaryResponse {
   message: string
   data: {
     totalEvents: number
-    totalStudentsParticipated: number
-    totalTickets: number
-    totalCheckins: number
-    eventsByMonth: Array<{
+    totalRegistrations: number
+    participatedCount: number
+    notParticipatedCount: number
+    participatedPercent: number
+    notParticipatedPercent: number
+    abandonedCount: number
+    // Optional fields for backward compatibility
+    totalStudentsParticipated?: number
+    totalTickets?: number
+    totalCheckins?: number
+    eventsByMonth?: Array<{
       year: number
       month: number
       eventCount: number
     }>
-    attendanceByMonth: Array<{
+    attendanceByMonth?: Array<{
       year: number
       month: number
       participantCount: number
@@ -34,6 +41,27 @@ export interface SystemSummaryParams {
   EventStatus?: string
 }
 
+export interface MonthlyReportItem {
+  year: number
+  month: number
+  totalRegistrations: number
+  participatedCount: number
+  notParticipatedCount: number
+  abandonedCount: number
+}
+
+export interface MonthlyReportResponse {
+  success: boolean
+  message: string
+  data: MonthlyReportItem[]
+  errors: null | any
+}
+
+export interface MonthlyReportParams {
+  fromDate?: string // date
+  toDate?: string // date
+}
+
 export const reportService = {
   /**
    * Lấy system summary report
@@ -41,6 +69,15 @@ export const reportService = {
   async getSystemSummary(params?: SystemSummaryParams): Promise<SystemSummaryResponse> {
     const endpoint = buildEndpoint(API_ENDPOINTS.REPORTS.SYSTEM_SUMMARY, params)
     const response = await apiClient.get<SystemSummaryResponse>(endpoint)
+    return response.data
+  },
+
+  /**
+   * Lấy monthly report data
+   */
+  async getMonthlyReport(params?: MonthlyReportParams): Promise<MonthlyReportResponse> {
+    const endpoint = buildEndpoint(API_ENDPOINTS.REPORTS.MONTHLY, params)
+    const response = await apiClient.get<MonthlyReportResponse>(endpoint)
     return response.data
   },
 }

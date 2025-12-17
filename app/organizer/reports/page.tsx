@@ -6,7 +6,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, TrendingUp, Users, Calendar, BarChart3, FileSpreadsheet, FileText, Filter, Loader2 } from "lucide-react"
+import { Download, TrendingUp, Users, Calendar, BarChart3, FileSpreadsheet, FileText, Filter, Loader2, XCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { OrganizerHeader } from "@/components/organizer/header"
-import { reportService, SystemSummaryResponse } from "@/lib/services/report.service"
+import { reportService, SystemSummaryResponse, MonthlyReportItem } from "@/lib/services/report.service"
 import { toast } from "react-toastify"
 import {
   BarChart,
@@ -75,6 +75,7 @@ export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("6months")
   const [isLoading, setIsLoading] = useState(true)
   const [summaryData, setSummaryData] = useState<SystemSummaryResponse["data"] | null>(null)
+  const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([])
 
   // Fetch system summary
   useEffect(() => {
@@ -96,15 +97,59 @@ export default function ReportsPage() {
     fetchSummary()
   }, [])
 
+  // Fetch monthly report data
+  useEffect(() => {
+    const fetchMonthlyData = async () => {
+      try {
+        // Calculate date range based on timeRange
+        const today = new Date()
+        const toDate = today.toISOString().split('T')[0] // YYYY-MM-DD
+        
+        let fromDate = new Date()
+        switch (timeRange) {
+          case "7days":
+            fromDate.setDate(today.getDate() - 7)
+            break
+          case "30days":
+            fromDate.setDate(today.getDate() - 30)
+            break
+          case "6months":
+            fromDate.setMonth(today.getMonth() - 6)
+            break
+          case "1year":
+            fromDate.setFullYear(today.getFullYear() - 1)
+            break
+          default:
+            fromDate.setMonth(today.getMonth() - 6)
+        }
+        
+        const response = await reportService.getMonthlyReport({
+          fromDate: fromDate.toISOString().split('T')[0],
+          toDate
+        })
+        if (response.success && response.data) {
+          setMonthlyData(response.data)
+        }
+      } catch (error: any) {
+        console.error("Error fetching monthly report:", error)
+        // Don't show error toast, just use default data
+      }
+    }
+
+    fetchMonthlyData()
+  }, [timeRange])
+
   // Calculate stats from summary data
   const stats = summaryData
     ? {
         totalEvents: summaryData.totalEvents || 0,
-        totalRegistrations: summaryData.totalTickets || 0,
-        averageAttendanceRate:
-          summaryData.totalTickets > 0
-            ? Math.round((summaryData.totalCheckins / summaryData.totalTickets) * 100)
-            : 0,
+        totalRegistrations: summaryData.totalRegistrations || summaryData.totalTickets || 0,
+        averageAttendanceRate: summaryData.participatedPercent || 
+          (summaryData.totalRegistrations && summaryData.totalRegistrations > 0
+            ? Math.round((summaryData.participatedCount / summaryData.totalRegistrations) * 100)
+            : summaryData.totalTickets && summaryData.totalTickets > 0
+            ? Math.round((summaryData.totalCheckins || 0) / summaryData.totalTickets * 100)
+            : 0),
         eventsThisMonth:
           summaryData.eventsByMonth && summaryData.eventsByMonth.length > 0
             ? summaryData.eventsByMonth[summaryData.eventsByMonth.length - 1].eventCount
@@ -113,6 +158,11 @@ export default function ReportsPage() {
           summaryData.attendanceByMonth && summaryData.attendanceByMonth.length > 0
             ? summaryData.attendanceByMonth[summaryData.attendanceByMonth.length - 1].participantCount
             : 0,
+        participatedCount: summaryData.participatedCount || summaryData.totalCheckins || 0,
+        totalStudentsParticipated: summaryData.totalStudentsParticipated || summaryData.participatedCount || 0,
+        notParticipatedCount: summaryData.notParticipatedCount || 0,
+        notParticipatedPercent: summaryData.notParticipatedPercent || 0,
+        abandonedCount: summaryData.abandonedCount || 0,
       }
     : {
         totalEvents: 0,
@@ -120,10 +170,24 @@ export default function ReportsPage() {
         averageAttendanceRate: 0,
         eventsThisMonth: 0,
         registrationsThisMonth: 0,
+        participatedCount: 0,
+        totalStudentsParticipated: 0,
+        notParticipatedCount: 0,
+        notParticipatedPercent: 0,
+        abandonedCount: 0,
       }
 
-  // Format data for charts
-  const registrationTrendData = summaryData?.eventsByMonth && summaryData.eventsByMonth.length > 0
+  // Format data for charts from monthly API
+  const registrationTrendData = monthlyData && monthlyData.length > 0
+    ? monthlyData.map((item) => {
+        const monthNames = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"]
+        return {
+          month: monthNames[item.month - 1] || `M${item.month}`,
+          registrations: item.totalRegistrations,
+          attendance: item.participatedCount,
+        }
+      })
+    : summaryData?.eventsByMonth && summaryData.eventsByMonth.length > 0
     ? summaryData.eventsByMonth.map((eventMonth, index) => {
         const attendanceMonth = summaryData.attendanceByMonth?.[index] || { participantCount: 0 }
         const monthNames = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"]
@@ -165,17 +229,17 @@ export default function ReportsPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
                   <Calendar className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tổng số sự kiện</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Tổng số sự kiện</p>
                   <p className="text-2xl font-bold text-foreground">{stats.totalEvents}</p>
-                  <p className="text-xs text-success flex items-center gap-1">
+                  <p className="text-xs text-success flex items-center gap-1 mt-1">
                     <TrendingUp className="h-3 w-3" />+{stats.eventsThisMonth} tháng này
                   </p>
                 </div>
@@ -183,52 +247,83 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-success/10 rounded-lg">
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-success/10 rounded-lg flex-shrink-0">
                   <Users className="h-4 w-4 text-success" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tổng số vé</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Tổng số vé</p>
                   <p className="text-2xl font-bold text-foreground">{stats.totalRegistrations.toLocaleString()}</p>
-                  <p className="text-xs text-success flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />+{stats.registrationsThisMonth} tháng này
-                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
                   <Users className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tổng lượt check-in</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Tổng lượt check-in</p>
                   <p className="text-2xl font-bold text-foreground">
-                    {summaryData?.totalCheckins || 0}
+                    {stats.participatedCount}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {summaryData?.totalStudentsParticipated || 0} người tham dự (unique)
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.totalStudentsParticipated} người tham dự (unique)
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-warning/10 rounded-lg">
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-warning/10 rounded-lg flex-shrink-0">
                   <TrendingUp className="h-4 w-4 text-warning" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tỷ lệ tham dự trung bình</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Tỷ lệ tham dự trung bình</p>
                   <p className="text-2xl font-bold text-foreground">{stats.averageAttendanceRate}%</p>
-                  <Progress value={stats.averageAttendanceRate} className="h-1 mt-1 w-20" />
+                  <Progress value={stats.averageAttendanceRate} className="h-1 mt-2 w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Không tham dự</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.notParticipatedCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.notParticipatedPercent}% tổng số vé
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="h-full">
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-muted/10 rounded-lg flex-shrink-0">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Đã hủy</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.abandonedCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vé đã bị hủy
+                  </p>
                 </div>
               </div>
             </CardContent>
