@@ -99,18 +99,18 @@ export default function ReportsPage() {
   // Calculate stats from summary data
   const stats = summaryData
     ? {
-        totalEvents: summaryData.totalEvents,
-        totalRegistrations: summaryData.totalTickets,
+        totalEvents: summaryData.totalEvents || 0,
+        totalRegistrations: summaryData.totalTickets || 0,
         averageAttendanceRate:
           summaryData.totalTickets > 0
             ? Math.round((summaryData.totalCheckins / summaryData.totalTickets) * 100)
             : 0,
         eventsThisMonth:
-          summaryData.eventsByMonth.length > 0
+          summaryData.eventsByMonth && summaryData.eventsByMonth.length > 0
             ? summaryData.eventsByMonth[summaryData.eventsByMonth.length - 1].eventCount
             : 0,
         registrationsThisMonth:
-          summaryData.attendanceByMonth.length > 0
+          summaryData.attendanceByMonth && summaryData.attendanceByMonth.length > 0
             ? summaryData.attendanceByMonth[summaryData.attendanceByMonth.length - 1].participantCount
             : 0,
       }
@@ -123,15 +123,17 @@ export default function ReportsPage() {
       }
 
   // Format data for charts
-  const registrationTrendData = summaryData?.eventsByMonth.map((eventMonth, index) => {
-    const attendanceMonth = summaryData.attendanceByMonth[index] || { participantCount: 0 }
-    const monthNames = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"]
-    return {
-      month: monthNames[eventMonth.month - 1] || `M${eventMonth.month}`,
-      registrations: eventMonth.eventCount * 50, // Estimate based on events
-      attendance: attendanceMonth.participantCount,
-    }
-  }) || defaultRegistrationTrendData
+  const registrationTrendData = summaryData?.eventsByMonth && summaryData.eventsByMonth.length > 0
+    ? summaryData.eventsByMonth.map((eventMonth, index) => {
+        const attendanceMonth = summaryData.attendanceByMonth?.[index] || { participantCount: 0 }
+        const monthNames = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"]
+        return {
+          month: monthNames[eventMonth.month - 1] || `M${eventMonth.month}`,
+          registrations: eventMonth.eventCount * 50, // Estimate based on events
+          attendance: attendanceMonth.participantCount,
+        }
+      })
+    : defaultRegistrationTrendData
 
   return (
     <>

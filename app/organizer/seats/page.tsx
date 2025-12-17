@@ -29,9 +29,24 @@ import { useUser } from "@/hooks/use-user";
 import { toast } from "react-toastify";
 import { cn } from "@/lib/utils";
 
+<<<<<<< HEAD
 /* =======================
    TYPES (GIỮ + THÊM)
    ======================= */
+=======
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { Armchair, RefreshCw, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { OrganizerHeader } from "@/components/organizer/header"
+import { eventService, EventListItem, SeatDto } from "@/lib/services/event.service"
+import { useUser } from "@/hooks/use-user"
+import { toast } from "react-toastify"
+import { cn } from "@/lib/utils"
+>>>>>>> 368efc78d761ad7fb737045901f1838d821f4a78
 
 type SeatStatus = "available" | "reserved" | "occupied";
 
@@ -45,6 +60,7 @@ interface SeatOccupant {
   ticketStatus: string;
 }
 
+<<<<<<< HEAD
 interface SeatData {
   id: string;
   row: string;
@@ -73,6 +89,18 @@ const eventIdFromUrl = searchParams.get("eventId");
   /* =======================
      FETCH EVENTS (GIỮ NGUYÊN)
      ======================= */
+=======
+export default function OrganizerSeatsPage() {
+  const { user } = useUser()
+  const searchParams = useSearchParams()
+  const eventIdFromUrl = searchParams.get('eventId')
+  const [events, setEvents] = useState<EventListItem[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<string>("")
+  const [seats, setSeats] = useState<SeatData[]>([])
+  const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null)
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true)
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
+>>>>>>> 368efc78d761ad7fb737045901f1838d821f4a78
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -87,6 +115,7 @@ const eventIdFromUrl = searchParams.get("eventId");
         });
 
         if (response.success && response.data) {
+<<<<<<< HEAD
           setEvents(response.data);
           if (response.data.length > 0 && !selectedEvent) {
             if (eventIdFromUrl) {
@@ -94,6 +123,14 @@ const eventIdFromUrl = searchParams.get("eventId");
             } else {
               setSelectedEvent(response.data[0].eventId);
             }
+=======
+          setEvents(response.data)
+          // Ưu tiên chọn event từ URL query param, nếu không có thì chọn event đầu tiên
+          if (eventIdFromUrl && response.data.some(e => e.eventId === eventIdFromUrl)) {
+            setSelectedEvent(eventIdFromUrl)
+          } else if (response.data.length > 0 && !selectedEvent) {
+            setSelectedEvent(response.data[0].eventId)
+>>>>>>> 368efc78d761ad7fb737045901f1838d821f4a78
           }
         }
       } catch (error) {
@@ -104,12 +141,17 @@ const eventIdFromUrl = searchParams.get("eventId");
       }
     };
 
+<<<<<<< HEAD
     fetchEvents();
   }, [user?.userId]);
 
   /* =======================
      FETCH SEATS (THÊM 2 API, GIỮ FLOW)
      ======================= */
+=======
+    fetchEvents()
+  }, [user?.userId, eventIdFromUrl])
+>>>>>>> 368efc78d761ad7fb737045901f1838d821f4a78
 
   useEffect(() => {
     const fetchSeats = async () => {

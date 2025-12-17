@@ -25,6 +25,32 @@ export default function StudentEventsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("published")
 
+  // Helper function to check if event is currently ongoing
+  const isEventOngoing = (event: EventListItem): boolean => {
+    const now = new Date()
+    const startDateTime = new Date(`${event.date}T${event.startTime}`)
+    const endDateTime = new Date(`${event.date}T${event.endTime}`)
+    
+    // Event is ongoing if: status is published AND current time is between start and end
+    return (
+      event.status === "published" &&
+      now >= startDateTime &&
+      now <= endDateTime
+    )
+  }
+
+  // Helper function to check if event is upcoming (chưa bắt đầu)
+  const isEventUpcoming = (event: EventListItem): boolean => {
+    const now = new Date()
+    const startDateTime = new Date(`${event.date}T${event.startTime}`)
+    
+    // Event is upcoming if: status is published AND current time is before start
+    return (
+      event.status === "published" &&
+      now < startDateTime
+    )
+  }
+
   // Fetch events from API
   useEffect(() => {
     const fetchEvents = async () => {
@@ -33,11 +59,21 @@ export default function StudentEventsPage() {
         const response = await eventService.getAllEvents({
           pageNumber: 1,
           pageSize: 100, // Lấy nhiều events để hiển thị
-          status: activeTab === "active" ? undefined : activeTab, // registered sẽ filter sau
+          status: activeTab === "active" || activeTab === "registered" ? undefined : activeTab, // active và registered sẽ filter sau
         })
         
         if (response.success && response.data) {
           let filteredData = response.data
+          
+          // Filter upcoming events (sắp diễn ra - chưa bắt đầu)
+          if (activeTab === "published") {
+            filteredData = response.data.filter(isEventUpcoming)
+          }
+          
+          // Filter ongoing events (đang diễn ra)
+          if (activeTab === "active") {
+            filteredData = response.data.filter(isEventOngoing)
+          }
           
           // Filter registered events (cần check user đã đăng ký - tạm thời lấy tất cả published)
           if (activeTab === "registered") {
@@ -131,12 +167,18 @@ export default function StudentEventsPage() {
 
       {/* Tabs for filtering */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex bg-muted/30 p-1 rounded-lg shadow-sm">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex bg-muted/30 p-1 rounded-lg shadow-sm">
           <TabsTrigger 
             value="published"
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
           >
             Sắp diễn ra 
+          </TabsTrigger>
+          <TabsTrigger 
+            value="active"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md transition-all duration-200"
+          >
+            Đang diễn ra
           </TabsTrigger>
           <TabsTrigger 
             value="registered"
@@ -198,9 +240,15 @@ function EventCard({
   const totalSeats = event.totalSeats || 0
   const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, event: EventListItem) => {
+    // Check if event is ongoing
+    const now = new Date()
+    const startDateTime = new Date(`${event.date}T${event.startTime}`)
+    const endDateTime = new Date(`${event.date}T${event.endTime}`)
+    const isOngoing = status === "published" && now >= startDateTime && now <= endDateTime
+
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      published: { label: "Sắp diễn ra ", variant: "default" },
+      published: { label: isOngoing ? "Đang diễn ra" : "Sắp diễn ra", variant: isOngoing ? "default" : "default" },
       draft: { label: "Bản nháp", variant: "secondary" },
       pending: { label: "Chờ duyệt", variant: "outline" },
       cancelled: { label: "Đã hủy", variant: "destructive" },
@@ -223,7 +271,7 @@ function EventCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
         <div className="absolute top-3 left-3 z-10">
-          {getStatusBadge(event.status)}
+          {getStatusBadge(event.status, event)}
         </div>
       </Link>
 
@@ -271,15 +319,32 @@ function EventCard({
           </div>
         )}
 
-        <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
+        {registeredEventIds.has(event.eventId) ? (
           <Button
-            variant={registeredEventIds.has(event.eventId) ? "secondary" : "outline"}
-            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300"
-            disabled={registeredEventIds.has(event.eventId)}
+            variant="secondary"
+            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm mt-auto cursor-default"
+            disabled
           >
-            {registeredEventIds.has(event.eventId) ? "Đã đăng ký" : "Đăng ký ngay"}
+            Đã đăng ký
           </Button>
-        </Link>
+        ) : event.status === "completed" ? (
+          <Button
+            variant="outline"
+            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm mt-auto cursor-default"
+            disabled
+          >
+            Đăng ký ngay
+          </Button>
+        ) : (
+          <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
+            <Button
+              variant="outline"
+              className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300"
+            >
+              Đăng ký ngay
+            </Button>
+          </Link>
+        )}
       </CardContent>
     </Card>
   )
