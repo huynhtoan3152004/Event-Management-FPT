@@ -220,19 +220,7 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground">Theo dõi hiệu suất và tham dự sự kiện</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div className="flex gap-2">
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7days">7 ngày qua</SelectItem>
-                  <SelectItem value="30days">30 ngày qua</SelectItem>
-                  <SelectItem value="6months">6 tháng qua</SelectItem>
-                  <SelectItem value="1year">1 năm qua</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            
             <div className="flex gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <label htmlFor="fromDate" className="text-xs text-muted-foreground">From</label>
@@ -427,16 +415,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-base">Báo cáo hiệu suất sự kiện</CardTitle>
                 <CardDescription className="text-xs">Chi tiết theo từng sự kiện</CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Xuất CSV
-                </Button>
-                <Button variant="outline" size="sm">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Xuất PDF
-                </Button>
-              </div>
+              
             </div>
           </CardHeader>
           <CardContent>
