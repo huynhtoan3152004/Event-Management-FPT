@@ -76,6 +76,16 @@ import { OrganizerHeader } from "@/components/organizer/header";
 
 import type { Venue } from "@/types";
 import { venueService } from "@/lib/services/venue.service";
+interface Seat {
+  seatId: string;
+  label: string;
+  status: string;
+}
+
+interface SeatRow {
+  rowLabel: string;
+  seats: Seat[];
+}
 type VenueFormData = Partial<Venue> & {
   maxRows?: number;
   maxSeatsPerRow?: number;
@@ -133,6 +143,7 @@ export default function OrganizerVenuesPage() {
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [deletingVenue, setDeletingVenue] = useState<Venue | null>(null);
 
+  
   type VenueFormData = Partial<Venue> & {
     maxRows?: number;
     maxSeatsPerRow?: number;
@@ -206,10 +217,17 @@ export default function OrganizerVenuesPage() {
       const res = await venueService.create(payload);
 
       if (res.success && res.data) {
-        toast.success("Venue created successfully!");
-
         const v = res.data;
 
+        // ✅ 1. CALL API GENERATE SEATS Ở ĐÂY
+        await venueService.generateSeats(v.hallId, {
+          rows: payload.maxRows,
+          seatsPerRow: payload.maxSeatsPerRow,
+        });
+
+        toast.success("Venue + Seat map created successfully!");
+
+        // ✅ 2. UPDATE UI
         const newVenue: Venue = {
           id: v.hallId,
           name: v.name,
@@ -224,11 +242,34 @@ export default function OrganizerVenuesPage() {
         resetForm();
         setIsCreateOpen(false);
       }
+
     } catch (e) {
       toast.error("Failed to create venue");
       console.error(e);
     }
   };
+const openSeatMap = async (venue: Venue) => {
+  try {
+    setSeatMapHall(venue);
+    setSeatMapOpen(true);
+    setLoadingSeatMap(true);
+
+    const res = await venueService.getSeatMap(venue.id);
+
+    if (res.success) {
+      setSeatRows(res.data.rows);
+    } else {
+      toast.error("Không thể tải seat map");
+      setSeatRows([]);
+    }
+  } catch (e) {
+    console.error(e);
+    toast.error("Lỗi khi tải seat map");
+    setSeatRows([]);
+  } finally {
+    setLoadingSeatMap(false);
+  }
+};
 
   /* -------------------------------------------
      UPDATE VENUE
@@ -342,7 +383,11 @@ export default function OrganizerVenuesPage() {
         : { ...prev, facilities: [...list, id] };
     });
   };
+const [seatMapOpen, setSeatMapOpen] = useState(false);
+const [seatMapHall, setSeatMapHall] = useState<Venue | null>(null);
+const [seatRows, setSeatRows] = useState<SeatRow[]>([]);
 
+const [loadingSeatMap, setLoadingSeatMap] = useState(false);
   /* ============================================
      UI
   ============================================ */
@@ -426,7 +471,10 @@ export default function OrganizerVenuesPage() {
                       <DropdownMenuItem onClick={() => openEditDialog(venue)}>
                         <Edit className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
-
+                      <DropdownMenuItem onClick={() => openSeatMap(venue)}>
+                        <Users className="h-4 w-4 mr-2" />
+                        Seat Map
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => setDeletingVenue(venue)}
@@ -511,6 +559,42 @@ export default function OrganizerVenuesPage() {
               </Button>
               <Button onClick={handleEdit}>Save Changes</Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={seatMapOpen} onOpenChange={setSeatMapOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Seat Map – {seatMapHall?.name}</DialogTitle>
+            </DialogHeader>
+
+            {loadingSeatMap ? (
+              <div className="text-center py-8">Loading seat map...</div>
+            ) : (
+              <div className="space-y-2 max-h-[60vh] overflow-auto">
+                {seatRows.map((row) => (
+                  <div key={row.rowLabel} className="flex items-center gap-2">
+                    <span className="w-6 font-semibold">{row.rowLabel}</span>
+
+                    <div className="flex gap-1 flex-wrap">
+                      {row.seats
+                        .sort((a, b) => {
+                          const na = Number(a.label.replace(row.rowLabel, ""));
+                          const nb = Number(b.label.replace(row.rowLabel, ""));
+                          return na - nb;
+                        })
+                        .map((seat) => (
+                          <div
+                            key={seat.seatId}
+                            className="w-8 h-8 border rounded text-xs flex items-center justify-center"
+                          >
+                            {seat.label}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
