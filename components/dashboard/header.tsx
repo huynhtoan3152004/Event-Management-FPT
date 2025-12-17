@@ -53,10 +53,10 @@ export function DashboardHeader() {
       {/* Right Section */}
       <div className="flex items-center gap-1">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-8 w-8">
+        {/* <Button variant="ghost" size="icon" className="relative h-8 w-8">
           <Bell className="h-4 w-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
-        </Button>
+        </Button> */}
 
         {/* User Menu */}
         {isLoading ? (

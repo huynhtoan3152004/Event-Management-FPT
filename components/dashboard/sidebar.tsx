@@ -48,7 +48,7 @@ const navItems = [
   { label: "Bảng điều khiển", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/dashboard/events", icon: Calendar },
   { label: "Vé của bạn", href: "/dashboard/tickets", icon: Ticket },
-  { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
+  // { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
 ];
 
 export function DashboardSidebar() {

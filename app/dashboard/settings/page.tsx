@@ -96,7 +96,7 @@ export default function StudentProfilePage() {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 mb-5">
           <Separator />
 
           <div className="grid gap-4">

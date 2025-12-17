@@ -75,21 +75,20 @@ export default function MyTicketsPage() {
 
   // Filter tickets theo status
   const getFilteredTickets = () => {
-    const now = new Date()
-    
     return tickets.filter((ticket) => {
-      const eventDate = new Date(`${ticket.eventDate}T${ticket.eventEndTime}`)
-      
       if (activeTab === "upcoming") {
-        // Upcoming: event chưa diễn ra và ticket status là active
-        return eventDate > now && ticket.status === "active"
-      } else if (activeTab === "used") {
-        // Used: ticket status là used
-        return ticket.status === "used"
-      } else if (activeTab === "expired") {
-        // Expired: event đã qua và ticket vẫn active (chưa được check-in) hoặc cancelled
-        return (eventDate < now && ticket.status === "active") || ticket.status === "cancelled"
-      }
+        // Sắp tới: ticket status là active
+        return ticket.status === "active"
+      } else if (activeTab === "checked-in") {
+        // Đã check-in: ticket status là checked-in
+        return ticket.status === "checked-in"
+      } else if (activeTab === "completed") {
+        // Đã check-out: ticket status là completed
+        return ticket.status === "completed"
+      } else if (activeTab === "abandoned") {
+        // Tham dự nhưng không check-out: ticket status là abandoned
+        return ticket.status === "abandoned"
+      } 
       return false
     })
   }
@@ -156,9 +155,13 @@ export default function MyTicketsPage() {
   // Get status badge
   const getStatusBadge = (status: string) => {
     if (status === "active") {
-      return <Badge variant="default" className="text-sm">Đã đăng ký, chưa check-in</Badge>
-    } else if (status === "used") {
-      return <Badge variant="secondary" className="text-sm">Đã check-in ✓✓</Badge>
+      return <Badge variant="default" className="text-sm">Đặt vé thành công</Badge>
+    } else if (status === "checked-in") {
+      return <Badge variant="secondary" className="text-sm">Đã check-in</Badge>
+    } else if (status === "completed") {
+      return <Badge variant="secondary" className="text-sm bg-green-500 hover:bg-green-600">Đã check-out</Badge>
+    } else if (status === "abandoned") {
+      return <Badge variant="outline" className="text-sm border-yellow-500 text-yellow-600">Tham dự nhưng không check-out</Badge>
     } else if (status === "cancelled") {
       return <Badge variant="destructive" className="text-sm">Đã hủy ✗</Badge>
     } else {
@@ -179,8 +182,10 @@ export default function MyTicketsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
-            <TabsTrigger value="used">Đã sử dụng</TabsTrigger>
-            <TabsTrigger value="expired">Hết hạn</TabsTrigger>
+            <TabsTrigger value="checked-in">Đã check-in</TabsTrigger>
+            <TabsTrigger value="completed">Đã check-out</TabsTrigger>
+            <TabsTrigger value="abandoned">Tham dự nhưng không check-out</TabsTrigger>
+            {/* <TabsTrigger value="used">Đã sử dụng</TabsTrigger> */}
           </TabsList>
 
           {isLoading ? (
@@ -192,8 +197,10 @@ export default function MyTicketsPage() {
             <TabsContent value={activeTab} className="mt-6">
               <div className="text-center py-12 text-muted-foreground">
                 {activeTab === "upcoming" && "Chưa có vé sắp tới"}
-                {activeTab === "used" && "Chưa có vé đã sử dụng"}
-                {activeTab === "expired" && "Chưa có vé hết hạn"}
+                {activeTab === "checked-in" && "Chưa có vé đã check-in"}
+                {activeTab === "completed" && "Chưa có vé đã check-out"}
+                {activeTab === "abandoned" && "Chưa có vé tham dự nhưng không check-out"}
+                {/* {activeTab === "used" && "Chưa có vé đã sử dụng"} */}
               </div>
             </TabsContent>
           ) : (
@@ -387,22 +394,7 @@ function TicketCard({
                 <QrCode className="h-4 w-4 mr-2" />
                 Xem QR
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full"
-                onClick={() => {
-                  const qrUrl = getQRCodeUrl(ticket.ticketCode)
-                  const link = document.createElement('a')
-                  link.href = qrUrl
-                  link.download = `ticket-${ticket.ticketCode}.png`
-                  link.target = '_blank'
-                  link.click()
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Tải xuống
-              </Button>
+             
               {ticket.status === "active" && (
                 <Button
                   size="sm"

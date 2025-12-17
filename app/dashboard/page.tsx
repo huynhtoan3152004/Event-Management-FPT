@@ -220,7 +220,7 @@ export default function StudentDashboardPage() {
             ) : recentAttendance.length === 0 ? (
               <div className="text-muted-foreground">Chưa có lịch sử tham dự</div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 mb-5">
                 {recentAttendance.map((record) => (
                   <div key={record.id} className="flex items-center justify-between py-3 border-b last:border-0">
                     <div className="flex items-center gap-3">
