@@ -401,10 +401,10 @@ export default function OrganizerSpeakersPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-semibold text-lg line-clamp-1">
                             {speaker.name}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
                             {speaker.title}
                           </p>
 
@@ -440,7 +440,7 @@ export default function OrganizerSpeakersPage() {
                       </div>
 
                       {speaker.bio && (
-                        <p className="text-sm text-muted-foreground mt-3">
+                        <p className="text-sm text-muted-foreground mt-3 line-clamp-3">
                           {speaker.bio}
                         </p>
                       )}
@@ -571,17 +571,25 @@ function SpeakerForm({
       <div className="grid gap-2">
         <Label>Name *</Label>
         <Input
+          maxLength={50}
           value={formData.name || ""}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
+        <p className="text-xs text-muted-foreground text-right">
+          {formData.name?.length || 0}/50
+        </p>
       </div>
 
       <div className="grid gap-2">
         <Label>Title *</Label>
         <Input
+          maxLength={60}
           value={formData.title || ""}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
+        <p className="text-xs text-muted-foreground text-right">
+          {formData.title?.length || 0}/60
+        </p>
       </div>
 
       <div className="grid gap-2">
@@ -597,9 +605,14 @@ function SpeakerForm({
       <div className="grid gap-2">
         <Label>Bio</Label>
         <Textarea
+          rows={4}
+          maxLength={180}
           value={formData.bio || ""}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
         />
+        <p className="text-xs text-muted-foreground text-right">
+          {formData.bio?.length || 0}/180
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

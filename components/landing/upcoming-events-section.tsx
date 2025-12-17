@@ -1,6 +1,7 @@
 /* ============================================
    Upcoming Events Section (LIVE API VERSION)
-   ============================================ */
+   ONLY SHOW UPCOMING EVENTS
+============================================ */
 
 "use client";
 
@@ -21,7 +22,22 @@ export function UpcomingEventsSection() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  /* ===== Fetch Events on Load ===== */
+  /* ============================================
+     CHECK UPCOMING EVENT (DATE >= TODAY)
+  ============================================ */
+  const isUpcomingEvent = (event: EventListItem) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const eventDate = new Date(event.date);
+    eventDate.setHours(0, 0, 0, 0);
+
+    return eventDate >= today;
+  };
+
+  /* ============================================
+     FETCH EVENTS
+  ============================================ */
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -31,7 +47,9 @@ export function UpcomingEventsSection() {
         });
 
         if (res?.success) {
-          setEvents(res.data);
+          // ✅ FILTER UPCOMING EVENTS ONLY
+          const upcomingEvents = res.data.filter(isUpcomingEvent);
+          setEvents(upcomingEvents);
         }
       } catch (error) {
         console.error("Failed to fetch events:", error);
@@ -43,7 +61,9 @@ export function UpcomingEventsSection() {
     fetchEvents();
   }, []);
 
-  /* ===== Scroll Buttons Logic ===== */
+  /* ============================================
+     SCROLL LOGIC
+  ============================================ */
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -68,7 +88,7 @@ export function UpcomingEventsSection() {
   return (
     <section ref={sectionRef} className="py-20 bg-accent/20">
       <div className="container mx-auto px-4">
-        {/* Header */}
+        {/* HEADER */}
         <div className="text-center mb-4">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             FPTU Event Hub
@@ -78,7 +98,7 @@ export function UpcomingEventsSection() {
           </p>
         </div>
 
-        {/* Section title */}
+        {/* SECTION TITLE */}
         <div className="flex items-center justify-between mb-8 mt-12">
           <h3 className="text-xl md:text-2xl font-semibold text-foreground">
             Sự kiện sắp tới từ các câu lạc bộ
@@ -92,9 +112,9 @@ export function UpcomingEventsSection() {
           </Link>
         </div>
 
-        {/* Events Carousel */}
+        {/* EVENTS CAROUSEL */}
         <div className="relative">
-          {/* Scroll Buttons */}
+          {/* LEFT BUTTON */}
           <button
             onClick={() => scroll("left")}
             className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-card shadow-lg border flex items-center justify-center transition-opacity ${
@@ -104,6 +124,7 @@ export function UpcomingEventsSection() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
+          {/* RIGHT BUTTON */}
           <button
             onClick={() => scroll("right")}
             className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-card shadow-lg border flex items-center justify-center transition-opacity ${
@@ -113,13 +134,13 @@ export function UpcomingEventsSection() {
             <ChevronRight className="h-5 w-5" />
           </button>
 
-          {/* Scrollable Container */}
+          {/* SCROLL CONTAINER */}
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
             className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
           >
-            {/* Loading UI */}
+            {/* LOADING */}
             {loading &&
               [...Array(4)].map((_, i) => (
                 <div
@@ -128,12 +149,14 @@ export function UpcomingEventsSection() {
                 />
               ))}
 
-            {/* No events */}
+            {/* NO EVENTS */}
             {!loading && events.length === 0 && (
-              <p className="text-muted-foreground">Không có sự kiện nào.</p>
+              <p className="text-muted-foreground">
+                Không có sự kiện sắp diễn ra.
+              </p>
             )}
 
-            {/* Render events */}
+            {/* EVENTS */}
             {!loading &&
               events.map((event) => (
                 <div

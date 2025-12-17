@@ -3,11 +3,20 @@
    Using shadcn Sidebar components for consistency
    ============================================ */
 
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Calendar, Ticket, ClipboardCheck, Settings, LogOut, ChevronRight } from "lucide-react"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Calendar,
+  Ticket,
+  ClipboardCheck,
+  Settings,
+  LogOut,
+  ChevronRight,
+} from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -19,33 +28,33 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useUser } from "@/hooks/use-user"
-import { useLogout } from "@/hooks/use-auth"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/dropdown-menu";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { useUser } from "@/hooks/use-user";
+import { useLogout } from "@/hooks/use-auth";
 
 const navItems = [
-<<<<<<< Updated upstream
   { label: "Bảng điều khiển", href: "/dashboard", icon: LayoutDashboard },
-=======
->>>>>>> Stashed changes
   { label: "Events", href: "/dashboard/events", icon: Calendar },
   { label: "Vé của bạn", href: "/dashboard/tickets", icon: Ticket },
   { label: "Tham dự", href: "/dashboard/attendance", icon: ClipboardCheck },
-]
+];
 
 export function DashboardSidebar() {
-  const pathname = usePathname()
-  const { user, isLoading } = useUser()
-  const { logout } = useLogout()
+  const pathname = usePathname();
+  const { user, isLoading } = useUser();
+  const { logout } = useLogout();
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -54,7 +63,9 @@ export function DashboardSidebar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">F</span>
           </div>
-          <span className="font-semibold text-foreground group-data-[collapsible=icon]:hidden">FPTU Events</span>
+          <span className="font-semibold group-data-[collapsible=icon]:hidden">
+            FPTU Events
+          </span>
         </Link>
       </SidebarHeader>
 
@@ -64,17 +75,24 @@ export function DashboardSidebar() {
             <SidebarMenu>
               {navItems.map((item) => {
                 const isActive =
-                  pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(item.href));
+
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.label}
+                    >
                       <Link href={item.href}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -84,12 +102,10 @@ export function DashboardSidebar() {
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             {isLoading ? (
               <SidebarMenuButton className="h-auto py-2" disabled>
                 <Skeleton className="h-6 w-6 rounded-full" />
-                <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden gap-1">
+                <div className="flex flex-col items-start gap-1 text-xs group-data-[collapsible=icon]:hidden">
                   <Skeleton className="h-3 w-20" />
                   <Skeleton className="h-2 w-16" />
                 </div>
@@ -99,16 +115,24 @@ export function DashboardSidebar() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton className="h-auto py-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
-                      <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage
+                        src={user.avatar || "/placeholder-user.jpg"}
+                        alt={user.name}
+                      />
+                      <AvatarFallback className="text-xs">
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start text-xs group-data-[collapsible=icon]:hidden">
                       <span className="font-medium">{user.name}</span>
-                      <span className="text-muted-foreground capitalize">{user.roleName || user.roleId || 'User'}</span>
+                      <span className="text-muted-foreground capitalize">
+                        {user.roleName || user.roleId || "User"}
+                      </span>
                     </div>
                     <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent side="right" align="end" className="w-48">
                   <div className="px-2 py-1.5 text-xs text-muted-foreground">
                     <div className="font-medium">{user.email}</div>
@@ -121,7 +145,10 @@ export function DashboardSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
@@ -141,5 +168,5 @@ export function DashboardSidebar() {
 
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

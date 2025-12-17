@@ -26,7 +26,10 @@ export interface UpdateVenueRequest {
   description?: string;
   facilities?: string;
 }
-
+export interface GenerateSeatsRequest {
+  rows: number;
+  seatsPerRow: number;
+}
 /* ============================================
    RESPONSE DTO
 ============================================ */
@@ -47,8 +50,18 @@ export interface VenueDto {
 
   createdAt?: string;
   updatedAt?: string | null;
+  
+}
+interface Seat {
+  seatId: string;
+  label: string;
+  status: string;
 }
 
+interface SeatRow {
+  rowLabel: string;
+  seats: Seat[];
+}
 /* ============================================
    VENUE SERVICE
 ============================================ */
@@ -73,7 +86,25 @@ export const venueService = {
 
     return res.data;
   },
+  async getSeatMap(hallId: string) {
+    const res = await apiClient.get<{
+      success: boolean;
+      data: {
+        hallId: string;
+        hallName: string;
+        rows: {
+          rowLabel: string;
+          seats: {
+            seatId: string;
+            label: string;
+            status: string;
+          }[];
+        }[];
+      };
+    }>(`/api/Seats/halls/${hallId}/seat-map`);
 
+    return res.data;
+  },
   /* ---------------------- CREATE ---------------------- */
   async create(payload: CreateVenueRequest) {
     const res = await apiClient.post<{
@@ -112,12 +143,17 @@ export const venueService = {
 
     return res.data;
   },
-
   /* ---------------------- GENERATE SEATS ---------------------- */
-  async generateSeats(id: string) {
+  async generateSeats(
+    id: string,
+    payload: {
+      rows: number;
+      seatsPerRow: number;
+    }
+  ) {
     const res = await apiClient.post<{
       success: boolean;
-    }>(API_ENDPOINTS.VENUES.GENERATE_SEATS(id));
+    }>(API_ENDPOINTS.VENUES.GENERATE_SEATS(id), payload);
 
     return res.data;
   },

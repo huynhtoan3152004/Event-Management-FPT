@@ -3,188 +3,242 @@
    Visual seat map and management
    ============================================ */
 
-"use client"
+"use client";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Armchair, RefreshCw, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OrganizerHeader } from "@/components/organizer/header";
+import { eventService, EventListItem } from "@/lib/services/event.service";
+import { useUser } from "@/hooks/use-user";
+import { toast } from "react-toastify";
+import { cn } from "@/lib/utils";
 
-import { useState, useEffect } from "react"
-import { Armchair, RefreshCw, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { OrganizerHeader } from "@/components/organizer/header"
-import { eventService, EventListItem, SeatDto } from "@/lib/services/event.service"
-import { useUser } from "@/hooks/use-user"
-import { toast } from "react-toastify"
-import { cn } from "@/lib/utils"
+/* =======================
+   TYPES (GIỮ + THÊM)
+   ======================= */
 
-type SeatStatus = "available" | "reserved" | "occupied" 
+type SeatStatus = "available" | "reserved" | "occupied";
 
-interface SeatData {
-  id: string
-  row: string
-  number: number
-  status: SeatStatus
-  seatId?: string
+interface SeatOccupant {
+  studentId: string;
+  studentName: string;
+  studentCode?: string;
+  ticketCode: string;
+  registeredAt: string;
+  checkInTime?: string | null;
+  ticketStatus: string;
 }
 
-export default function OrganizerSeatsPage() {
-  const { user } = useUser()
-  const [events, setEvents] = useState<EventListItem[]>([])
-  const [selectedEvent, setSelectedEvent] = useState<string>("")
-  const [seats, setSeats] = useState<SeatData[]>([])
-  const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null)
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true)
-  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
+interface SeatData {
+  id: string;
+  row: string;
+  number: number;
+  status: SeatStatus;
+  seatId?: string;
+  occupant?: SeatOccupant | null;
+}
 
-  // Fetch events của organizer
+/* =======================
+   COMPONENT
+   ======================= */
+
+export default function OrganizerSeatsPage() {
+  const { user } = useUser();
+
+  const [events, setEvents] = useState<EventListItem[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [seats, setSeats] = useState<SeatData[]>([]);
+  const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
+
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+const searchParams = useSearchParams();
+const eventIdFromUrl = searchParams.get("eventId");
+  /* =======================
+     FETCH EVENTS (GIỮ NGUYÊN)
+     ======================= */
+
   useEffect(() => {
     const fetchEvents = async () => {
-      if (!user?.userId) return
-      
+      if (!user?.userId) return;
+
       try {
-        setIsLoadingEvents(true)
+        setIsLoadingEvents(true);
         const response = await eventService.getAllEvents({
           organizerId: user.userId,
           pageNumber: 1,
           pageSize: 100,
-        })
-        
+        });
+
         if (response.success && response.data) {
-          setEvents(response.data)
-          // Tự động chọn event đầu tiên nếu có
+          setEvents(response.data);
           if (response.data.length > 0 && !selectedEvent) {
-            setSelectedEvent(response.data[0].eventId)
+            if (eventIdFromUrl) {
+              setSelectedEvent(eventIdFromUrl);
+            } else {
+              setSelectedEvent(response.data[0].eventId);
+            }
           }
         }
-      } catch (error: any) {
-        console.error('Error fetching events:', error)
-        toast.error('Không thể tải danh sách sự kiện.')
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        toast.error("Không thể tải danh sách sự kiện.");
       } finally {
-        setIsLoadingEvents(false)
+        setIsLoadingEvents(false);
       }
-    }
+    };
 
-    fetchEvents()
-  }, [user?.userId])
+    fetchEvents();
+  }, [user?.userId]);
 
-  // Fetch seats khi chọn event
+  /* =======================
+     FETCH SEATS (THÊM 2 API, GIỮ FLOW)
+     ======================= */
+
   useEffect(() => {
     const fetchSeats = async () => {
       if (!selectedEvent) {
-        setSeats([])
-        return
+        setSeats([]);
+        return;
       }
 
       try {
-        setIsLoadingSeats(true)
-        const response = await eventService.getEventSeatMap(selectedEvent)
-        if (response.success && response.data?.rows) {
-          const mappedSeats: SeatData[] = response.data.rows.flatMap(
-            (row: any) => {
-              return (
-                row.seats
-                  .map((seat: any) => {
-                    // label: "A1", "B10", ...
-                    const match = seat.label.match(/^([A-Z]+)(\d+)$/);
+        setIsLoadingSeats(true);
 
-                    return {
-                      id: seat.seatId,
-                      seatId: seat.seatId,
-                      row: row.rowLabel, // A, B, C
-                      number: match ? Number(match[2]) : 0, // 1,2,3,10
-                      status: seat.status,
-                    };
-                  })
-                  // ✅ SORT GHẾ TRONG CÙNG 1 ROW (trái → phải)
-                  .sort((a: SeatData, b: SeatData) => a.number - b.number)
-              );
-            }
-          );
+        // API 1: FULL seat map
+        const seatMapRes = await eventService.getEventSeatMap(selectedEvent);
 
-          // ✅ SORT ROW (A → B → C)
-          mappedSeats.sort((a, b) =>
-            a.row !== b.row ? a.row.localeCompare(b.row) : a.number - b.number
-          );
+        // API 2: Check-in map (có occupant)
+        const checkinMapRes = await eventService.getEventSeatCheckinMap(
+          selectedEvent
+        );
 
-          setSeats(mappedSeats);
-        } else {
-          toast.error(response.message || "Không thể tải danh sách ghế.");
+        if (!seatMapRes.success || !seatMapRes.data?.rows) {
+          toast.error(seatMapRes.message || "Không thể tải danh sách ghế.");
           setSeats([]);
+          return;
         }
-      } catch (error: any) {
-        console.error('Error fetching seats:', error)
-        toast.error('Không thể tải danh sách ghế. Vui lòng thử lại.')
-        setSeats([])
+
+        // Map seatId → occupant
+        const occupantMap = new Map<
+          string,
+          { status: SeatStatus; occupant: SeatOccupant | null }
+        >();
+
+        if (checkinMapRes.success && checkinMapRes.data?.rows) {
+          checkinMapRes.data.rows.forEach((row: any) => {
+            row.seats.forEach((seat: any) => {
+              occupantMap.set(seat.seatId, {
+                status: seat.status,
+                occupant: seat.occupant ?? null,
+              });
+            });
+          });
+        }
+
+        const mappedSeats: SeatData[] = seatMapRes.data.rows.flatMap(
+          (row: any) =>
+            row.seats
+              .map((seat: any) => {
+                const match = seat.label.match(/^([A-Z]+)(\d+)$/);
+                const extra = occupantMap.get(seat.seatId);
+
+                return {
+                  id: seat.seatId,
+                  seatId: seat.seatId,
+                  row: row.rowLabel,
+                  number: match ? Number(match[2]) : 0,
+                  status: extra?.status ?? seat.status,
+                  occupant: extra?.occupant ?? null,
+                };
+              })
+              .sort((a: SeatData, b: SeatData) => a.number - b.number)
+        );
+
+        mappedSeats.sort((a, b) =>
+          a.row !== b.row ? a.row.localeCompare(b.row) : a.number - b.number
+        );
+
+        setSeats(mappedSeats);
+      } catch (error) {
+        console.error("Error fetching seats:", error);
+        toast.error("Không thể tải danh sách ghế. Vui lòng thử lại.");
+        setSeats([]);
       } finally {
-        setIsLoadingSeats(false)
+        setIsLoadingSeats(false);
       }
-    }
+    };
 
-    fetchSeats()
-  }, [selectedEvent])
+    fetchSeats();
+  }, [selectedEvent]);
 
-  // Count seats by status
+  /* =======================
+     HELPERS (GIỮ NGUYÊN)
+     ======================= */
+
   const seatCounts = seats.reduce(
     (acc, seat) => {
-      acc[seat.status]++
-      return acc
+      acc[seat.status]++;
+      return acc;
     },
-    { available: 0, reserved: 0, occupied: 0 } as Record<SeatStatus, number>,
-  )
+    { available: 0, reserved: 0, occupied: 0 } as Record<SeatStatus, number>
+  );
 
-  // Handle seat click
-  const handleSeatClick = (seat: SeatData) => {
-    setSelectedSeat(seat)
-  }
+  const seatsByRow = seats.reduce((acc, seat) => {
+    if (!acc[seat.row]) acc[seat.row] = [];
+    acc[seat.row].push(seat);
+    return acc;
+  }, {} as Record<string, SeatData[]>);
 
-  // Toggle seat status
-  const toggleSeatStatus = (seatId: string, newStatus: SeatStatus) => {
-    setSeats(seats.map((s) => (s.id === seatId ? { ...s, status: newStatus } : s)))
-    setSelectedSeat(null)
-  }
-
-  // Refresh seats
   const refreshSeats = () => {
     if (selectedEvent) {
-      // Trigger re-fetch bằng cách set lại selectedEvent
-      const currentEvent = selectedEvent
-      setSelectedEvent("")
-      setTimeout(() => setSelectedEvent(currentEvent), 100)
+      const currentEvent = selectedEvent;
+      setSelectedEvent("");
+      setTimeout(() => setSelectedEvent(currentEvent), 100);
     }
-  }
+  };
 
-  // Get seat color based on status
   const getSeatColor = (status: SeatStatus) => {
     switch (status) {
       case "available":
-        return "bg-success/20 text-success hover:bg-success/30 border-success/30"
+        return "bg-success/20 text-success hover:bg-success/30 border-success/30";
       case "reserved":
-        return "bg-warning/20 text-warning hover:bg-warning/30 border-warning/30"
+        return "bg-warning/20 text-warning hover:bg-warning/30 border-warning/30";
       case "occupied":
-        return "bg-primary/20 text-primary hover:bg-primary/30 border-primary/30"
-      
+        return "bg-primary/20 text-primary hover:bg-primary/30 border-primary/30";
     }
-  }
-const getStatusBadgeClass = (status: SeatStatus) => {
-  switch (status) {
-    case "available":
-      return "bg-success/20 text-success border-success/30";
-    case "reserved":
-      return "bg-warning/20 text-warning border-warning/30";
-    case "occupied":
-      return "bg-primary/20 text-primary border-primary/30";
-   
-  }
-};
-  // Group seats by row
-  const seatsByRow = seats.reduce(
-    (acc, seat) => {
-      if (!acc[seat.row]) acc[seat.row] = []
-      acc[seat.row].push(seat)
-      return acc
-    },
-    {} as Record<string, SeatData[]>,
-  )
+  };
+
+  const getStatusBadgeClass = (status: SeatStatus) => {
+    switch (status) {
+      case "available":
+        return "bg-success/20 text-success border-success/30";
+      case "reserved":
+        return "bg-warning/20 text-warning border-warning/30";
+      case "occupied":
+        return "bg-primary/20 text-primary border-primary/30";
+    }
+  };
+
+  /* =======================
+     UI (GIỮ NGUYÊN)
+     ======================= */
 
   return (
     <>
@@ -193,7 +247,6 @@ const getStatusBadgeClass = (status: SeatStatus) => {
       <main className="flex-1 p-4 lg:p-6 space-y-6">
         {/* Filters */}
         <div className="flex items-end justify-between gap-4">
-          {/* LEFT: Event select */}
           <div className="w-64">
             <label className="text-sm font-medium mb-1 block">Event</label>
 
@@ -220,21 +273,16 @@ const getStatusBadgeClass = (status: SeatStatus) => {
             )}
           </div>
 
-          {/* RIGHT: Refresh */}
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              onClick={refreshSeats}
-              disabled={!selectedEvent || isLoadingSeats}
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${
-                  isLoadingSeats ? "animate-spin" : ""
-                }`}
-              />
-              Refresh
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={refreshSeats}
+            disabled={!selectedEvent || isLoadingSeats}
+          >
+            <RefreshCw
+              className={cn("h-4 w-4 mr-2", isLoadingSeats && "animate-spin")}
+            />
+            Refresh
+          </Button>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
@@ -251,27 +299,18 @@ const getStatusBadgeClass = (status: SeatStatus) => {
                 Click on a seat to view details or change status
               </CardDescription>
             </CardHeader>
+
             <CardContent className="pb-6">
               {isLoadingSeats ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              ) : !selectedEvent ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Vui lòng chọn một sự kiện để xem sơ đồ ghế
-                </div>
-              ) : seats.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Sự kiện này chưa có ghế nào
-                </div>
               ) : (
                 <>
-                  {/* Stage */}
                   <div className="bg-muted rounded-lg p-3 text-center text-sm font-medium text-muted-foreground mb-6">
                     STAGE
                   </div>
 
-                  {/* Seats */}
                   <div className="space-y-2 overflow-x-auto pb-4">
                     {Object.entries(seatsByRow).map(([row, rowSeats]) => (
                       <div key={row} className="flex items-center gap-2">
@@ -283,7 +322,6 @@ const getStatusBadgeClass = (status: SeatStatus) => {
                             <button
                               key={seat.id}
                               onClick={() => setSelectedSeat(seat)}
-                              
                               className={cn(
                                 "w-8 h-8 rounded text-xs font-medium border transition-colors flex-shrink-0",
                                 getSeatColor(seat.status),
@@ -300,7 +338,6 @@ const getStatusBadgeClass = (status: SeatStatus) => {
                     ))}
                   </div>
 
-                  {/* Legend */}
                   <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
@@ -328,71 +365,103 @@ const getStatusBadgeClass = (status: SeatStatus) => {
 
           {/* Seat Details Panel */}
           <div className="space-y-4 lg:col-span-1">
-            {/* Stats */}
+            {/* Seat Statistics */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Seat Statistics</CardTitle>
               </CardHeader>
+
               <CardContent className="space-y-2 pb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Seats</span>
                   <span className="font-medium">{seats.length}</span>
                 </div>
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Available</span>
                   <span className="font-medium text-success">
                     {seatCounts.available}
                   </span>
                 </div>
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Reserved</span>
                   <span className="font-medium text-warning">
                     {seatCounts.reserved}
                   </span>
                 </div>
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Occupied</span>
                   <span className="font-medium text-primary">
                     {seatCounts.occupied}
                   </span>
                 </div>
-               
               </CardContent>
             </Card>
 
-            {/* Selected Seat Details */}
-            {selectedSeat ? (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Seat Details</CardTitle>
-                </CardHeader>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Seat Details</CardTitle>
+              </CardHeader>
 
-                <CardContent className="space-y-3 pb-6">
-                  <div className="text-center py-2">
-                    <p className="text-2xl font-bold">
-                      {selectedSeat.row}
-                      {selectedSeat.number}
-                    </p>
-
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "mt-1 capitalize",
-                        getStatusBadgeClass(selectedSeat.status)
-                      )}
-                    >
-                      {selectedSeat.status}
-                    </Badge>
+              <CardContent className="space-y-3 pb-6">
+                {!selectedSeat ? (
+                  <div className="text-center text-muted-foreground text-sm">
+                    Select a seat to view details
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                  Select a seat to view details
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <>
+                    <div className="text-center py-2">
+                      <p className="text-2xl font-bold">
+                        {selectedSeat.row}
+                        {selectedSeat.number}
+                      </p>
+
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "mt-1 capitalize",
+                          getStatusBadgeClass(selectedSeat.status)
+                        )}
+                      >
+                        {selectedSeat.status}
+                      </Badge>
+                    </div>
+
+                    {selectedSeat.occupant && (
+                      <div className="mt-4 space-y-2 text-sm border-t pt-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Họ tên</span>
+                          <span className="font-medium">
+                            {selectedSeat.occupant.studentName}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mã SV</span>
+                          <span>
+                            {selectedSeat.occupant.studentCode || "N/A"}
+                          </span>
+                        </div>
+
+
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Check-in
+                          </span>
+                          <span>
+                            {selectedSeat.occupant.checkInTime
+                              ? "Đã check-in"
+                              : "Chưa check-in"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

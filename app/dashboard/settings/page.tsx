@@ -54,12 +54,6 @@ export default function StudentProfilePage() {
      UPDATE profile
   ========================= */
   const handleSave = async () => {
-    if (!name.trim()) {
-      toast.warning("Tên không được để trống");
-      return;
-    }
-
-    setSaving(true);
     try {
       await userService.updateProfile({
         name,
@@ -67,13 +61,13 @@ export default function StudentProfilePage() {
         studentCode: studentCode || null,
       });
 
-      toast.success("Cập nhật thông tin thành công");
-    } catch {
+      toast.success("Cập nhật thành công");
+    } catch (e) {
+      console.error(e);
       toast.error("Cập nhật thất bại");
-    } finally {
-      setSaving(false);
     }
   };
+
 
   if (loading) {
     return (

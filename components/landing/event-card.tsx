@@ -50,7 +50,6 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             </p>
           </div>
 
-          {/* Redirect tới login kèm eventId */}
           <Link href={redirectUrl}>
             <Button
               variant="outline"
@@ -85,7 +84,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
 
         <div className="p-4 flex flex-col justify-between flex-1">
           <div>
-            <h3 className="font-semibold text-foreground mb-2">
+            <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
               {event.title}
             </h3>
 
@@ -104,7 +103,6 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             </div>
           </div>
 
-          {/* Redirect tới login */}
           <Link href={redirectUrl}>
             <Button className="rounded-full mt-4">Đăng ký ngay</Button>
           </Link>
@@ -113,13 +111,15 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
     );
   }
 
-  /* ========= DEFAULT CARD ========= */
+  /* ========= DEFAULT CARD (FIX ĐỀU UI) ========= */
   return (
     <div
       ref={cardRef}
-      className="bg-card rounded-xl overflow-hidden shadow-sm border transition-all"
+      className="bg-card rounded-xl overflow-hidden shadow-sm border transition-all
+                 flex flex-col h-[380px]"
     >
-      <div className="relative h-48">
+      {/* IMAGE */}
+      <div className="relative h-[160px] w-full">
         <Image
           src={event.imageUrl || "/placeholder.svg"}
           alt={event.title}
@@ -131,12 +131,18 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
         </Badge>
       </div>
 
-      <div className="p-5 space-y-4">
+      {/* CONTENT */}
+      <div className="p-5 flex-1 flex flex-col">
         <div>
-          <h3 className="font-semibold text-lg text-foreground mb-1">
+          {/* TITLE */}
+          <h3
+            className="font-semibold text-lg text-foreground mb-2
+                         line-clamp-2 min-h-[3.5rem]"
+          >
             {event.title}
           </h3>
 
+          {/* DATE */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>
@@ -144,16 +150,19 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             </span>
           </div>
 
+          {/* CLUB */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
             <Users className="h-4 w-4" />
             <span>{event.clubName}</span>
           </div>
         </div>
 
-        {/* Redirect tới login */}
-        <Link href={redirectUrl}>
-          <Button className="w-full rounded-full">Đăng ký ngay</Button>
-        </Link>
+        {/* BUTTON – luôn nằm đáy */}
+        <div className="mt-auto pt-4">
+          <Link href={redirectUrl}>
+            <Button className="w-full rounded-full">Đăng ký ngay</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
