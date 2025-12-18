@@ -693,38 +693,53 @@ function VenueForm({
         </div>
       </div>
       {/* MAX ROWS + SEATS PER ROW */}
+      {/* MAX ROWS + SEATS PER ROW */}
       <div className="grid grid-cols-2 gap-4">
+        {/* MAX ROWS */}
         <div>
           <Label>Max Rows</Label>
           <Input
             type="number"
-            value={formData.maxRows || 0}
+            min={0}
+            step={1}
+            value={formData.maxRows ?? ""}
             onChange={(e) => {
-              const maxRows = Number(e.target.value);
-              const seatsPerRow = formData.maxSeatsPerRow || 0;
+              const value = e.target.value;
+
+              const maxRows =
+                value === "" ? undefined : Math.max(0, Number(value));
+
+              const seatsPerRow = formData.maxSeatsPerRow ?? 0;
 
               setFormData({
                 ...formData,
                 maxRows,
-                capacity: maxRows * seatsPerRow,
+                capacity: maxRows !== undefined ? maxRows * seatsPerRow : 0,
               });
             }}
           />
         </div>
 
+        {/* SEATS PER ROW */}
         <div>
           <Label>Seats Per Row</Label>
           <Input
             type="number"
-            value={formData.maxSeatsPerRow || 0}
+            min={0}
+            step={1}
+            value={formData.maxSeatsPerRow ?? ""}
             onChange={(e) => {
-              const seatsPerRow = Number(e.target.value);
-              const maxRows = formData.maxRows || 0;
+              const value = e.target.value;
+
+              const seatsPerRow =
+                value === "" ? undefined : Math.max(0, Number(value));
+
+              const maxRows = formData.maxRows ?? 0;
 
               setFormData({
                 ...formData,
                 maxSeatsPerRow: seatsPerRow,
-                capacity: maxRows * seatsPerRow,
+                capacity: seatsPerRow !== undefined ? maxRows * seatsPerRow : 0,
               });
             }}
           />
