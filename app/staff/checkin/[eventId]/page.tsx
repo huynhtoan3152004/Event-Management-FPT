@@ -43,7 +43,7 @@
      TableRow,
    } from "@/components/ui/table";
    import { Progress } from "@/components/ui/progress";
-   import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+  //  import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
    import { QRScanner } from "@/components/staff/qr-scanner";
    import { eventService, EventDetailDto } from "@/lib/services/event.service";
    import {
@@ -314,7 +314,7 @@
                  // Update recent check-ins
                  if (data.recentCheckIns && data.recentCheckIns.length > 0) {
                    const checkIns: CheckInRecord[] = data.recentCheckIns.map(
-                     (ci) => ({
+                     (ci: any) => ({
                        id: ci.ticketCode,
                        attendeeName: ci.attendeeName,
                        ticketCode: ci.ticketCode,
@@ -538,7 +538,7 @@
                      <p className="text-2xl font-bold text-primary">
                        {stats.checkedIn}
                      </p>
-                     <p className="text-xs text-muted-foreground">Đã check-in</p>
+                     <p className="text-xs text-muted-foreground">Đã đăng ký</p>
                    </div>
                    <div className="text-center px-4 py-2 bg-background/80 rounded-lg">
                      <p className="text-2xl font-bold">{stats.totalRegistered}</p>

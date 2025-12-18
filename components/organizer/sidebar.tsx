@@ -53,7 +53,7 @@ const mainNavItems = [
 ];
 
 const manageNavItems = [
-  { label: "Speakers", href: "/organizer/speakers", icon: Users },
+  { label: "Diễn giả", href: "/organizer/speakers", icon: Users },
   { label: "Địa điểm", href: "/organizer/venues", icon: MapPin },
   { label: "Ghế", href: "/organizer/seats", icon: Armchair },
   { label: "Quản lý người dùng", href: "/organizer/Managestaff", icon: Users },

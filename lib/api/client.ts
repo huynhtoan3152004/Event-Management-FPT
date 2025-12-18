@@ -192,29 +192,29 @@ apiClient.interceptors.response.use(
     }
 
     // Log error chi tiết để debug
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[API Error]', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        headers: error.response?.headers,
-        request: error.request ? 'Request sent but no response' : 'No request sent',
-        isCorsError: error.message === 'Network Error' || error.code === 'ERR_NETWORK',
-        fullError: error,
-      })
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.error('[API Error]', {
+    //     message: error.message,
+    //     code: error.code,
+    //     response: error.response?.data,
+    //     status: error.response?.status,
+    //     statusText: error.response?.statusText,
+    //     headers: error.response?.headers,
+    //     request: error.request ? 'Request sent but no response' : 'No request sent',
+    //     isCorsError: error.message === 'Network Error' || error.code === 'ERR_NETWORK',
+    //     fullError: error,
+    //   })
       
       // Log chi tiết response nếu có
-      if (error.response) {
-        console.error('[API Error Response Details]', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-          headers: error.response.headers,
-        })
-      }
-    }
+    //   if (error.response) {
+    //     console.error('[API Error Response Details]', {
+    //       status: error.response.status,
+    //       statusText: error.response.statusText,
+    //       data: error.response.data,
+    //       headers: error.response.headers,
+    //     })
+    //   }
+    // }
 
     return Promise.reject(error)
   }

@@ -317,13 +317,13 @@ export default function StaffEventSelectionPage() {
                         <p className="text-2xl font-bold text-primary">
                           {selectedEvent.checkInStats?.checkedIn || 0}
                         </p>
-                        <p className="text-xs text-muted-foreground">Đã check-in</p>
+                        <p className="text-xs text-muted-foreground">Đã đăng ký</p>
                       </div>
                       <div className="text-center p-3 bg-muted/50 rounded-lg">
                         <p className="text-2xl font-bold">
                           {selectedEvent.checkInStats?.totalRegistered || selectedEvent.totalSeats || 0}
                         </p>
-                        <p className="text-xs text-muted-foreground">Đã đăng ký</p>
+                        <p className="text-xs text-muted-foreground">Tổng số vé</p>
                       </div>
                       <div className="text-center p-3 bg-muted/50 rounded-lg">
                         <p className="text-2xl font-bold text-success">
