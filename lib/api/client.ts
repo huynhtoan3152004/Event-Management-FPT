@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 const apiClient: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ,//|| 'https://localhost:7007/'
   // baseURL:'https://localhost:7007/',
-  timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 10000,
+  timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 8000, // Giảm timeout từ 10s xuống 8s
   headers: {
     'Content-Type': 'application/json',
   },

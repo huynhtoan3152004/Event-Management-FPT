@@ -6,10 +6,22 @@
 
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 export function ToastProvider() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Only render ToastContainer on client to avoid hydration mismatch
+  if (!mounted) {
+    return null
+  }
+
   return (
     <ToastContainer
       position="top-right"
@@ -23,6 +35,7 @@ export function ToastProvider() {
       pauseOnHover
       theme="light"
       toastClassName="toast-custom"
+      limit={5}
     />
   )
 }

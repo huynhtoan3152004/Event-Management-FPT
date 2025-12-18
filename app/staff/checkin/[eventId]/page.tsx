@@ -2,10 +2,8 @@
    Staff Check-in Portal - Enhanced
    Full check-in interface with event details and stats
    ============================================ */
-
    "use client";
-
-   import { useState, useEffect, useCallback } from "react";
+   import { useState, useEffect, useCallback, useRef } from "react";
    import { useParams } from "next/navigation";
    import Link from "next/link";
    import { toast } from "react-toastify";
@@ -33,16 +31,17 @@
      CardTitle,
      CardDescription,
    } from "@/components/ui/card";
-   import { Badge } from "@/components/ui/badge";
-   import {
-     Table,
-     TableBody,
-     TableCell,
-     TableHead,
-     TableHeader,
-     TableRow,
-   } from "@/components/ui/table";
-   import { Progress } from "@/components/ui/progress";
+  import { Badge } from "@/components/ui/badge";
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "@/components/ui/table";
+  import { Progress } from "@/components/ui/progress";
   //  import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
    import { QRScanner } from "@/components/staff/qr-scanner";
    import { eventService, EventDetailDto } from "@/lib/services/event.service";
@@ -80,6 +79,8 @@
      type ActionMode = "checkin" | "checkout";
      const [mode, setMode] = useState<ActionMode>("checkin");
      const [recentCheckIns, setRecentCheckIns] = useState<CheckInRecord[]>([]);
+     const [recentCheckOuts, setRecentCheckOuts] = useState<CheckInRecord[]>([]);
+     const [activeTab, setActiveTab] = useState<"checkin" | "checkout">("checkin");
      const [isProcessing, setIsProcessing] = useState(false);
      const [isLoading, setIsLoading] = useState(true);
      const [showQRScanner, setShowQRScanner] = useState(false);
@@ -114,164 +115,206 @@
        }
      }, [eventId]);
    
-     // Fetch check-in stats and records from statistics API
+     // Ref to store event data for fetchData (avoid dependency issues)
+     const eventRef = useRef<EventDetailDto | null>(null);
      useEffect(() => {
-       const fetchData = async () => {
-         if (!eventId) return;
-   
-         try {
-           // Fetch statistics from API
-           const statisticsResponse = await eventService.getEventStatistics(
-             eventId
-           );
-   
-           if (statisticsResponse.success && statisticsResponse.data) {
-             const data = statisticsResponse.data;
-   
-             // Update stats
-             setStats({
+       eventRef.current = event;
+     }, [event]);
+
+     // Fetch check-in stats and records from statistics API
+     const fetchData = useCallback(async () => {
+       if (!eventId) return;
+
+       try {
+         // Fetch statistics from API
+         const statisticsResponse = await eventService.getEventStatistics(
+           eventId
+         );
+
+         if (statisticsResponse.success && statisticsResponse.data) {
+           const data = statisticsResponse.data;
+
+           // Update stats - only if changed
+           setStats((prevStats) => {
+             const newStats = {
                checkedIn: data.checkedInCount || 0,
                totalRegistered: data.registeredCount || 0,
                checkInRate: data.checkInRate || 0,
+             };
+             if (
+               prevStats.checkedIn === newStats.checkedIn &&
+               prevStats.totalRegistered === newStats.totalRegistered &&
+               prevStats.checkInRate === newStats.checkInRate
+             ) {
+               return prevStats;
+             }
+             return newStats;
+           });
+
+           // Update recent check-ins - only if changed
+           if (data.recentCheckIns && data.recentCheckIns.length > 0) {
+            const allRecords: CheckInRecord[] = data.recentCheckIns.map((ci: any, idx: number) => {
+              // Map API status to CheckInRecord status (chỉ dùng cho danh sách check-in)
+              let recordStatus: CheckInRecord["status"] = "entered";
+              if (ci.status === "checked-in" || ci.status === "checked_in") {
+                recordStatus = "entered";
+              } else if (ci.status === "abandoned") {
+                recordStatus = "already_used";
+              } else if (ci.status === "cancelled") {
+                recordStatus = "cancelled";
+              }
+              
+              return {
+                id: `${ci.ticketCode}-${ci.checkInTime || Date.now()}-${idx}`,
+                attendeeName: ci.attendeeName,
+                ticketCode: ci.ticketCode,
+                checkInTime: new Date(ci.checkInTime).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                status: recordStatus,
+                seatInfo: ci.seatNumber || undefined,
+              };
+            });
+            
+            // Chỉ dùng cho tab check-in gần đây
+            const checkIns = allRecords.filter(
+              (r) => r.status === "entered" || r.status === "already_used"
+            );
+            
+             setRecentCheckIns((prev) => {
+               // Compare by converting to JSON string for deep equality
+               const prevStr = JSON.stringify(prev.map(p => ({ ticketCode: p.ticketCode, status: p.status })));
+               const newStr = JSON.stringify(checkIns.map(c => ({ ticketCode: c.ticketCode, status: c.status })));
+               if (prevStr === newStr) {
+                 return prev;
+               }
+               return checkIns;
              });
-   
-             // Update recent check-ins
-             if (data.recentCheckIns && data.recentCheckIns.length > 0) {
-               const checkIns: CheckInRecord[] = data.recentCheckIns.map((ci) => ({
-                 id: ci.ticketCode, // Use ticketCode as ID
-                 attendeeName: ci.attendeeName,
-                 ticketCode: ci.ticketCode,
-                 checkInTime: new Date(ci.checkInTime).toLocaleTimeString(
-                   "vi-VN",
-                   {
-                     hour: "2-digit",
-                     minute: "2-digit",
-                   }
-                 ),
-                 status:
-                   ci.status === "checked_out"
-                     ? "checked_out"
-                     : ci.status === "checked_in"
-                     ? "entered"
-                     : "already_used",
-                 seatInfo: ci.seatNumber || undefined,
-               }));
-               setRecentCheckIns(checkIns);
-             } else {
-               setRecentCheckIns([]);
-             }
-   
-             // Update event data if needed
-             if (!event && data) {
-               setEvent({
-                 eventId: data.eventId,
-                 title: data.title,
-                 description: data.description,
-                 date: data.date,
-                 startTime: data.startTime,
-                 endTime: data.endTime,
-                 location: data.location,
-                 imageUrl: data.imageUrl,
-                 status: data.status,
-                 totalSeats: data.totalSeats,
-                 registeredCount: data.registeredCount,
-               } as EventDetailDto);
-             }
            } else {
-             // Fallback to event stats if API not available
-             if (event) {
-               setStats({
-                 checkedIn: event.registeredCount || 0,
-                 totalRegistered: event.totalSeats || 0,
-                 checkInRate:
-                   event.totalSeats > 0
-                     ? Math.round(
-                         ((event.registeredCount || 0) / event.totalSeats) * 100
-                       )
-                     : 0,
-               });
-             }
+             setRecentCheckIns((prev) => (prev.length === 0 ? prev : []));
            }
-         } catch (error: any) {
-           // Only log non-404 errors
-           if (error?.response?.status !== 404) {
-             console.error("Error fetching statistics:", error);
+
+           // Update event data if not already set
+           if (!eventRef.current && data) {
+             setEvent({
+               eventId: data.eventId,
+               title: data.title,
+               description: data.description,
+               date: data.date,
+               startTime: data.startTime,
+               endTime: data.endTime,
+               location: data.location,
+               imageUrl: data.imageUrl,
+               status: data.status,
+               totalSeats: data.totalSeats,
+               registeredCount: data.registeredCount,
+             } as EventDetailDto);
            }
-           // Fallback to event stats if API not available
-           if (event) {
-             setStats({
-               checkedIn: event.registeredCount || 0,
-               totalRegistered: event.totalSeats || 0,
-               checkInRate:
-                 event.totalSeats > 0
-                   ? Math.round(
-                       ((event.registeredCount || 0) / event.totalSeats) * 100
-                     )
-                   : 0,
-             });
-           }
+        }
+
+        // Fetch toàn bộ vé của event và lấy các vé có status = completed cho tab Check-out gần đây
+        try {
+          const ticketsResponse = await ticketService.getEventTickets(eventId);
+          if (ticketsResponse.success && ticketsResponse.data) {
+            const completedTickets = ticketsResponse.data.filter(
+              (t: any) => t.status?.toLowerCase() === "completed"
+            );
+
+            const checkOutRecords: CheckInRecord[] = completedTickets.map(
+              (t: any, idx: number) => ({
+                id: `${t.ticketCode}-${idx}`,
+                attendeeName: t.studentId,
+                ticketCode: t.ticketCode,
+                // Không có thời gian check-out trong API nên hiển thị eventEndTime hoặc "--"
+                checkInTime:
+                  t.eventEndTime ||
+                  new Date().toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                status: "checked_out",
+                seatInfo: t.seatNumber || undefined,
+              })
+            );
+
+            setRecentCheckOuts((prev) => {
+              const prevStr = JSON.stringify(
+                prev.map((p) => ({ ticketCode: p.ticketCode, status: p.status }))
+              );
+              const newStr = JSON.stringify(
+                checkOutRecords.map((c) => ({
+                  ticketCode: c.ticketCode,
+                  status: c.status,
+                }))
+              );
+              if (prevStr === newStr) {
+                return prev;
+              }
+              return checkOutRecords;
+            });
+          } else {
+            setRecentCheckOuts((prev) => (prev.length === 0 ? prev : []));
+          }
+        } catch (error: any) {
+          if (error?.response?.status !== 404) {
+            console.error("Error fetching event tickets:", error);
+          }
+        }
+       } catch (error: any) {
+         // Silently fail - stats will use fallback
+         if (error?.response?.status !== 404) {
+           console.error("Error fetching statistics:", error);
          }
-       };
-   
-       if (eventId) {
-         fetchData();
-         // Refresh every 5 seconds
-         const interval = setInterval(fetchData, 5000);
-         return () => clearInterval(interval);
        }
-     }, [eventId, event]);
-     const handleCheckout = useCallback(
-       async (code?: string) => {
-         const codeToCheck = code || ticketCode.trim();
-         if (!codeToCheck || isProcessing) return;
-   
-         setIsProcessing(true);
-         setCheckInResult(null);
-   
-         try {
-           await ticketService.checkoutByCode(codeToCheck);
-   
-           setCheckInResult({
-             status: "checked_out",
-             message: "Check-out thành công",
-             ticketCode: codeToCheck,
-           });
-   
-           setTicketCode("");
-           toast.success("Check-out thành công!");
-         } catch (error: any) {
-           const msg =
-             error?.response?.data?.message ||
-             error?.message ||
-             "Không thể check-out vé này";
-   
-           setCheckInResult({
-             status: "already_used",
-             message: msg,
-             ticketCode: codeToCheck,
-           });
-   
-           toast.error(msg);
-         } finally {
-           setIsProcessing(false);
-           setTimeout(() => setCheckInResult(null), 5000);
+     }, [eventId]); // Only depend on eventId - use ref for event
+
+     // Auto-refresh stats every 10 seconds (increased from 5 to reduce re-renders)
+     useEffect(() => {
+       if (!eventId) return;
+       
+       fetchData();
+       const interval = setInterval(fetchData, 10000); // 10 seconds
+       return () => clearInterval(interval);
+     }, [eventId, fetchData]);
+     // Track processed codes to prevent duplicate calls
+     const processedCodesRef = useRef<Set<string>>(new Set());
+     const isProcessingRef = useRef<boolean>(false);
+     const shownToastsRef = useRef<Set<string>>(new Set()); // Track shown toasts
+     
+    const handleCheckIn = useCallback(
+      async (code?: string) => {
+        const rawCode = code || ticketCode.trim();
+        if (!rawCode) return;
+
+        // Chuẩn hóa ticket code về lowercase để tránh lệch hoa/thường
+        const codeToCheck = rawCode.toLowerCase();
+
+         // Double check: both ref and state
+         if (isProcessing || isProcessingRef.current) {
+           return;
          }
-       },
-       [ticketCode, isProcessing]
-     );
-   
-     // Handle check-in
-     const handleCheckIn = useCallback(
-       async (code?: string) => {
-         const codeToCheck = code || ticketCode.trim();
-         if (!codeToCheck || isProcessing) return;
-   
+
+         // Prevent duplicate calls for the same code within 3 seconds
+         const codeKey = `${codeToCheck}_checkin`;
+         if (processedCodesRef.current.has(codeKey)) {
+           return;
+         }
+         
+         // Set flags immediately to prevent race conditions
+         isProcessingRef.current = true;
+         processedCodesRef.current.add(codeKey);
          setIsProcessing(true);
          setCheckInResult(null);
-   
+         
+         // Clean up after 3 seconds
+         setTimeout(() => {
+           processedCodesRef.current.delete(codeKey);
+         }, 3000);
+
          try {
            const response = await checkInService.checkIn(codeToCheck);
-   
+
            if (response.success) {
              // Success
              const result: CheckInResult = {
@@ -279,7 +322,7 @@
                message: response.message || "Check-in thành công!",
                ticketCode: codeToCheck,
              };
-   
+
              // Try to get ticket details for more info
              try {
                const ticketResponse = await ticketService.getTicketByCode(
@@ -292,59 +335,36 @@
              } catch (err) {
                // Ignore if can't get ticket details
              }
-   
+
              setCheckInResult(result);
              setTicketCode("");
-   
-             // Refresh statistics from API
-             try {
-               const statisticsResponse = await eventService.getEventStatistics(
-                 eventId
-               );
-               if (statisticsResponse.success && statisticsResponse.data) {
-                 const data = statisticsResponse.data;
-   
-                 // Update stats
-                 setStats({
-                   checkedIn: data.checkedInCount || 0,
-                   totalRegistered: data.registeredCount || 0,
-                   checkInRate: data.checkInRate || 0,
-                 });
-   
-                 // Update recent check-ins
-                 if (data.recentCheckIns && data.recentCheckIns.length > 0) {
-                   const checkIns: CheckInRecord[] = data.recentCheckIns.map(
-                     (ci: any) => ({
-                       id: ci.ticketCode,
-                       attendeeName: ci.attendeeName,
-                       ticketCode: ci.ticketCode,
-                       checkInTime: new Date(ci.checkInTime).toLocaleTimeString(
-                         "vi-VN",
-                         {
-                           hour: "2-digit",
-                           minute: "2-digit",
-                         }
-                       ),
-                       status:
-                         ci.status === "used" || ci.status === "checked_in"
-                           ? "entered"
-                           : "already_used",
-                       seatInfo: ci.seatNumber || undefined,
-                     })
-                   );
-                   setRecentCheckIns(checkIns);
-                 }
-               }
-             } catch (error) {
-               console.error("Error refreshing statistics:", error);
+
+            // Sau khi check-in thành công: gọi lại fetchData để đồng bộ stats + lịch sử
+            setTimeout(() => {
+              fetchData();
+            }, 800);
+
+             // Use consistent toastId to prevent duplicates
+             const toastId = `checkin-success-${codeToCheck}`;
+             if (!shownToastsRef.current.has(toastId)) {
+               shownToastsRef.current.add(toastId);
+               toast.success("Check-in thành công!", {
+                 toastId, // Prevent duplicate toasts
+                 autoClose: 3000,
+               });
+               // Clear after 5 seconds
+               setTimeout(() => {
+                 shownToastsRef.current.delete(toastId);
+               }, 5000);
              }
-   
-             toast.success("Check-in thành công!");
+             
+             // Switch to check-in tab to show the new record
+             setActiveTab("checkin");
            } else {
              // Handle different error types
              let status: CheckInResult["status"] = "not_found";
              let message = response.message || "Check-in thất bại";
-   
+
              if (
                message.includes("Already Checked In") ||
                message.includes("đã được sử dụng")
@@ -361,14 +381,26 @@
                status = "not_found";
                message = "Không tìm thấy vé";
              }
-   
+
              setCheckInResult({
                status,
                message,
                ticketCode: codeToCheck,
              });
-   
-             toast.error(message);
+
+             // Use consistent toastId format to prevent duplicates
+             const toastId = `checkin-error-${codeToCheck}-${status}`;
+             if (!shownToastsRef.current.has(toastId)) {
+               shownToastsRef.current.add(toastId);
+               toast.error(message, {
+                 toastId, // Prevent duplicate toasts
+                 autoClose: 3000,
+               });
+               // Clear after 5 seconds
+               setTimeout(() => {
+                 shownToastsRef.current.delete(toastId);
+               }, 5000);
+             }
            }
          } catch (error: any) {
            console.error("Error checking in:", error);
@@ -376,7 +408,7 @@
              error?.response?.data?.message ||
              error?.message ||
              "Có lỗi xảy ra khi check-in";
-   
+
            let status: CheckInResult["status"] = "not_found";
            if (errorMessage.includes("Already") || errorMessage.includes("đã")) {
              status = "already_used";
@@ -386,15 +418,22 @@
            ) {
              status = "cancelled";
            }
-   
+
            setCheckInResult({
              status,
              message: errorMessage,
              ticketCode: codeToCheck,
            });
-   
-           toast.error(errorMessage);
+
+           // Use consistent toastId format to prevent duplicates
+           const toastId = `checkin-error-${codeToCheck}-${status}`;
+           toast.error(errorMessage, {
+             toastId, // Prevent duplicate toasts
+             autoClose: 3000,
+           });
          } finally {
+           // Reset flags
+           isProcessingRef.current = false;
            setIsProcessing(false);
            // Clear result after 5 seconds
            setTimeout(() => setCheckInResult(null), 5000);
@@ -402,24 +441,241 @@
        },
        [ticketCode, isProcessing, eventId]
      );
+     
+    const handleCheckout = useCallback(
+      async (code?: string) => {
+        const rawCode = code || ticketCode.trim();
+        if (!rawCode) return;
+
+        // Chuẩn hóa ticket code về lowercase để tránh lệch hoa/thường
+        const codeToCheck = rawCode.toLowerCase();
+
+         // Double check: both ref and state
+         if (isProcessing || isProcessingRef.current) {
+           return;
+         }
+
+         // Prevent duplicate calls for the same code within 3 seconds
+         const codeKey = `${codeToCheck}_checkout`;
+         if (processedCodesRef.current.has(codeKey)) {
+           return;
+         }
+         
+         // Check if ticket is already checked out before attempting checkout
+         try {
+           const ticketResponse = await ticketService.getTicketByCode(codeToCheck);
+           if (ticketResponse.success && ticketResponse.data) {
+             const ticketStatus = ticketResponse.data.status?.toLowerCase();
+             // If ticket is already checked out, prevent checkout
+             if (ticketStatus === "checked_out" || ticketStatus === "completed") {
+               const toastId = `checkout-already-${codeToCheck}`;
+               if (!shownToastsRef.current.has(toastId)) {
+                 shownToastsRef.current.add(toastId);
+                 toast.error("Vé này đã được check-out rồi!", {
+                   toastId,
+                   autoClose: 3000,
+                 });
+                 setTimeout(() => {
+                   shownToastsRef.current.delete(toastId);
+                 }, 5000);
+               }
+               setCheckInResult({
+                 status: "already_used",
+                 message: "Vé này đã được check-out rồi!",
+                 ticketCode: codeToCheck,
+               });
+               return;
+             }
+           }
+         } catch (err) {
+           // If we can't get ticket info, continue with checkout attempt
+           // The API will handle the validation
+         }
+         
+         // Set flags immediately to prevent race conditions
+         isProcessingRef.current = true;
+         processedCodesRef.current.add(codeKey);
+         setIsProcessing(true);
+         setCheckInResult(null);
+         
+         // Clean up after 3 seconds
+         setTimeout(() => {
+           processedCodesRef.current.delete(codeKey);
+         }, 3000);
+
+        try {
+          await ticketService.checkoutByCode(codeToCheck);
+
+          setCheckInResult({
+            status: "checked_out",
+            message: "Check-out thành công",
+            ticketCode: codeToCheck,
+          });
+
+          // Optimistically add to recentCheckOuts so UI cập nhật ngay lập tức
+          try {
+            const ticketResponse = await ticketService.getTicketByCode(codeToCheck);
+            if (ticketResponse.success && ticketResponse.data) {
+              const t = ticketResponse.data;
+              const record: CheckInRecord = {
+                id: `${t.ticketCode}-${Date.now()}`,
+                attendeeName: t.studentId,
+                ticketCode: t.ticketCode,
+                // Dùng thời gian hiện tại làm thời gian check-out hiển thị
+                checkInTime: new Date().toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                status: "checked_out",
+                seatInfo: t.seatNumber || undefined,
+              };
+
+              setRecentCheckOuts((prev) => {
+                // Thêm lên đầu, tránh trùng mã vé liên tiếp
+                const filtered = prev.filter((r) => r.ticketCode !== record.ticketCode);
+                return [record, ...filtered].slice(0, 10);
+              });
+            }
+          } catch (err) {
+            // Nếu không lấy được thông tin vé thì bỏ qua, đã có fetchData() phía dưới
+          }
+
+          setTicketCode("");
+           // Use consistent toastId to prevent duplicates
+           const toastId = `checkout-success-${codeToCheck}`;
+           if (!shownToastsRef.current.has(toastId)) {
+             shownToastsRef.current.add(toastId);
+             toast.success("Check-out thành công!", {
+               toastId, // Prevent duplicate toasts
+               autoClose: 3000,
+             });
+             // Clear after 5 seconds
+             setTimeout(() => {
+               shownToastsRef.current.delete(toastId);
+             }, 5000);
+           }
+           
+           // Switch to check-out tab to show the new record
+           setActiveTab("checkout");
+
+           // Refresh statistics after successful checkout (only once, not multiple times)
+           // Use a small delay to avoid race condition with interval
+           setTimeout(() => {
+             fetchData();
+           }, 1000);
+         } catch (error: any) {
+           const msg =
+             error?.response?.data?.message ||
+             error?.message ||
+             "Không thể check-out vé này";
+
+           // Check if error message indicates already checked out
+           const isAlreadyCheckedOut = 
+             msg.includes("already") || 
+             msg.includes("đã") || 
+             msg.includes("checked out") ||
+             msg.includes("check-out");
+
+           setCheckInResult({
+             status: isAlreadyCheckedOut ? "already_used" : "not_found",
+             message: msg,
+             ticketCode: codeToCheck,
+           });
+
+           // Use consistent toastId to prevent duplicates
+           const toastId = `checkout-error-${codeToCheck}`;
+           if (!shownToastsRef.current.has(toastId)) {
+             shownToastsRef.current.add(toastId);
+             toast.error(msg, {
+               toastId, // Prevent duplicate toasts
+               autoClose: 3000,
+             });
+             // Clear after 5 seconds
+             setTimeout(() => {
+               shownToastsRef.current.delete(toastId);
+             }, 5000);
+           }
+         } finally {
+           // Reset flags
+           isProcessingRef.current = false;
+           setIsProcessing(false);
+           setTimeout(() => setCheckInResult(null), 5000);
+         }
+       },
+       [ticketCode, isProcessing, fetchData]
+     );
    
-     // Handle QR scan success
-     const handleQRScanSuccess = (decodedText: string) => {
-       setShowQRScanner(false);
-       mode === "checkin"
-         ? handleCheckIn(decodedText)
-         : handleCheckout(decodedText);
-     };
    
-     // Handle Enter key
+     // Refs to avoid recreating callback
+     const modeRef = useRef(mode);
+     const handleCheckInRef = useRef(handleCheckIn);
+     const handleCheckoutRef = useRef(handleCheckout);
+     
      useEffect(() => {
+       modeRef.current = mode;
+       handleCheckInRef.current = handleCheckIn;
+       handleCheckoutRef.current = handleCheckout;
+     }, [mode, handleCheckIn, handleCheckout]);
+
+    // Handle QR scan success - stable callback that never changes
+    const handleQRScanSuccess = useCallback((decodedText: string) => {
+      console.log("handleQRScanSuccess called with:", decodedText);
+      console.log("Current mode:", modeRef.current);
+      
+      // Close scanner immediately
+      setShowQRScanner(false);
+      
+      // Small delay to ensure scanner is closed before processing
+      setTimeout(() => {
+        console.log("Processing QR code in mode:", modeRef.current);
+        if (modeRef.current === "checkin") {
+          console.log("Calling handleCheckIn with:", decodedText);
+          handleCheckInRef.current(decodedText);
+        } else {
+          console.log("Calling handleCheckout with:", decodedText);
+          handleCheckoutRef.current(decodedText);
+        }
+      }, 200);
+    }, []); // Empty deps - uses refs
+   
+     // Handle Enter key with debounce
+     useEffect(() => {
+       let timeoutId: NodeJS.Timeout | null = null;
+       
        const handleKeyDown = (e: KeyboardEvent) => {
-         if (e.key === "Enter" && ticketCode.trim() && !isProcessing) {
-           mode === "checkin" ? handleCheckIn() : handleCheckout();
+         // Only handle Enter key
+         if (e.key !== "Enter") return;
+         
+         // Prevent if input is empty or processing
+         if (!ticketCode.trim() || isProcessing || isProcessingRef.current) {
+           return;
+         }
+         
+         // Prevent default form submission
+         if (e.target instanceof HTMLInputElement) {
+           e.preventDefault();
+         }
+         
+         // Clear any existing timeout
+         if (timeoutId) {
+           clearTimeout(timeoutId);
+         }
+         
+         // Debounce: wait 100ms before executing
+         timeoutId = setTimeout(() => {
+           if (!isProcessing && !isProcessingRef.current && ticketCode.trim()) {
+             mode === "checkin" ? handleCheckIn() : handleCheckout();
+           }
+         }, 100);
+       };
+       
+       window.addEventListener("keydown", handleKeyDown);
+       return () => {
+         window.removeEventListener("keydown", handleKeyDown);
+         if (timeoutId) {
+           clearTimeout(timeoutId);
          }
        };
-       window.addEventListener("keydown", handleKeyDown);
-       return () => window.removeEventListener("keydown", handleKeyDown);
      }, [ticketCode, handleCheckIn, handleCheckout, mode, isProcessing]);
    
      if (isLoading) {
@@ -589,11 +845,10 @@
    
                      <Button
                        size="sm"
-                       variant={mode === "checkout" ? "default" : "outline"}
-                       onClick={() => setMode("checkout")}
-                       disabled={!isEventOngoing()}
-                     >
-                       Check-out
+                      variant={mode === "checkout" ? "default" : "outline"}
+                      onClick={() => setMode("checkout")}
+                    >
+                      Check-out
                      </Button>
                    </div>
    
@@ -607,31 +862,41 @@
                      onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                      className="text-lg h-12 font-mono text-center"
                      autoFocus
-                     disabled={isProcessing}
+                     disabled={isProcessing || isProcessingRef.current}
+                     onKeyDown={(e) => {
+                       // Prevent Enter key if processing
+                       if (e.key === "Enter" && (isProcessing || isProcessingRef.current)) {
+                         e.preventDefault();
+                       }
+                     }}
                    />
                    <div className="flex gap-2">
                      <Button
                        onClick={() => setShowQRScanner(true)}
                        variant="outline"
                        className="flex-1"
-                       disabled={isProcessing}
+                       disabled={isProcessing || isProcessingRef.current}
                      >
                        <Camera className="h-4 w-4 mr-2" />
                        Quét QR
                      </Button>
                      <Button
-                       onClick={() =>
-                         mode === "checkin" ? handleCheckIn() : handleCheckout()
-                       }
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         if (!isProcessing && !isProcessingRef.current && ticketCode.trim()) {
+                           mode === "checkin" ? handleCheckIn() : handleCheckout();
+                         }
+                       }}
                        className="flex-1 rounded-full h-11 mb-5"
-                       disabled={!ticketCode.trim() || isProcessing}
+                       disabled={!ticketCode.trim() || isProcessing || isProcessingRef.current}
                      >
-                       {isProcessing ? (
+                       {isProcessing || isProcessingRef.current ? (
                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                        ) : (
                          <QrCode className="h-4 w-4 mr-2" />
                        )}
-                       {isProcessing
+                       {isProcessing || isProcessingRef.current
                          ? "Đang xử lý..."
                          : mode === "checkin"
                          ? "Check-in"
@@ -681,69 +946,132 @@
                </Card>
              </div>
    
-             {/* Right Column - Recent Check-ins Table */}
+             {/* Right Column - Recent Check-ins/Check-outs Table with Tabs */}
              <Card className="lg:col-span-2">
                <CardHeader className="pb-3">
                  <div className="flex items-center justify-between">
                    <div>
-                     <CardTitle className="text-base">Check-in gần đây</CardTitle>
+                     <CardTitle className="text-base">Lịch sử gần đây</CardTitle>
                      <CardDescription className="text-xs">
-                       Danh sách các lượt check-in mới nhất
+                       Danh sách các lượt check-in và check-out mới nhất
                      </CardDescription>
                    </div>
                    <Badge variant="outline" className="text-xs">
-                     {recentCheckIns.length} bản ghi
+                     {activeTab === "checkin" ? recentCheckIns.length : recentCheckOuts.length} bản ghi
                    </Badge>
                  </div>
                </CardHeader>
                <CardContent>
-                 {recentCheckIns.length === 0 ? (
-                   <div className="text-center py-8 text-muted-foreground text-sm">
-                     Chưa có lượt check-in nào
-                   </div>
-                 ) : (
-                   <Table>
-                     <TableHeader>
-                       <TableRow>
-                         <TableHead className="text-xs">
-                           TÊN NGƯỜI THAM GIA
-                         </TableHead>
-                         <TableHead className="text-xs">MÃ VÉ</TableHead>
-                         <TableHead className="text-xs">GHẾ</TableHead>
-                         <TableHead className="text-xs">THỜI GIAN</TableHead>
-                         <TableHead className="text-xs">TRẠNG THÁI</TableHead>
-                       </TableRow>
-                     </TableHeader>
-                     <TableBody>
-                       {recentCheckIns.map((record, index) => (
-                         <TableRow
-                           key={record.id}
-                           className={
-                             index === 0 && checkInResult?.status === "entered"
-                               ? "bg-success/5"
-                               : ""
-                           }
-                         >
-                           <TableCell className="font-medium text-sm py-2">
-                             {record.attendeeName}
-                           </TableCell>
-                           <TableCell className="text-muted-foreground text-sm py-2 font-mono">
-                             {record.ticketCode}
-                           </TableCell>
-                           <TableCell className="text-sm py-2">
-                             {record.seatInfo || "-"}
-                           </TableCell>
-                           <TableCell className="text-sm py-2">
-                             {record.checkInTime}
-                           </TableCell>
-                           <TableCell className="py-2">
-                             <StatusBadge status={record.status} />
-                           </TableCell>
-                         </TableRow>
-                       ))}
-                     </TableBody>
-                   </Table>
-                 )}
+                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "checkin" | "checkout")}>
+                   <TabsList className="grid w-full grid-cols-2 mb-4">
+                     <TabsTrigger value="checkin">
+                       Check-in gần đây ({recentCheckIns.length})
+                     </TabsTrigger>
+                     <TabsTrigger value="checkout">
+                       Check-out gần đây ({recentCheckOuts.length})
+                     </TabsTrigger>
+                   </TabsList>
+                   
+                   <TabsContent value="checkin" className="mt-0">
+                     {recentCheckIns.length === 0 ? (
+                       <div className="text-center py-8 text-muted-foreground text-sm">
+                         Chưa có lượt check-in nào
+                       </div>
+                     ) : (
+                       <Table>
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead className="text-xs">
+                               TÊN NGƯỜI THAM GIA
+                             </TableHead>
+                             <TableHead className="text-xs">MÃ VÉ</TableHead>
+                             <TableHead className="text-xs">GHẾ</TableHead>
+                             <TableHead className="text-xs">THỜI GIAN</TableHead>
+                             <TableHead className="text-xs">TRẠNG THÁI</TableHead>
+                           </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                           {recentCheckIns.map((record, index) => (
+                             <TableRow
+                               key={`${record.ticketCode}-${record.checkInTime}-${index}`}
+                               className={
+                                 index === 0 && checkInResult?.status === "entered"
+                                   ? "bg-success/5"
+                                   : ""
+                               }
+                             >
+                               <TableCell className="font-medium text-sm py-2">
+                                 {record.attendeeName}
+                               </TableCell>
+                               <TableCell className="text-muted-foreground text-sm py-2 font-mono">
+                                 {record.ticketCode}
+                               </TableCell>
+                               <TableCell className="text-sm py-2">
+                                 {record.seatInfo || "-"}
+                               </TableCell>
+                               <TableCell className="text-sm py-2">
+                                 {record.checkInTime}
+                               </TableCell>
+                               <TableCell className="py-2">
+                                 <StatusBadge status={record.status} />
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                         </TableBody>
+                       </Table>
+                     )}
+                   </TabsContent>
+                   
+                   <TabsContent value="checkout" className="mt-0">
+                     {recentCheckOuts.length === 0 ? (
+                       <div className="text-center py-8 text-muted-foreground text-sm">
+                         Chưa có lượt check-out nào
+                       </div>
+                     ) : (
+                       <Table>
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead className="text-xs">
+                               TÊN NGƯỜI THAM GIA
+                             </TableHead>
+                             <TableHead className="text-xs">MÃ VÉ</TableHead>
+                             <TableHead className="text-xs">GHẾ</TableHead>
+                             <TableHead className="text-xs">THỜI GIAN</TableHead>
+                             <TableHead className="text-xs">TRẠNG THÁI</TableHead>
+                           </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                           {recentCheckOuts.map((record, index) => (
+                             <TableRow
+                               key={`${record.ticketCode}-${record.checkInTime}-${index}`}
+                               className={
+                                 index === 0 && checkInResult?.status === "checked_out"
+                                   ? "bg-blue-50"
+                                   : ""
+                               }
+                             >
+                               <TableCell className="font-medium text-sm py-2">
+                                 {record.attendeeName}
+                               </TableCell>
+                               <TableCell className="text-muted-foreground text-sm py-2 font-mono">
+                                 {record.ticketCode}
+                               </TableCell>
+                               <TableCell className="text-sm py-2">
+                                 {record.seatInfo || "-"}
+                               </TableCell>
+                               <TableCell className="text-sm py-2">
+                                 {record.checkInTime}
+                               </TableCell>
+                               <TableCell className="py-2">
+                                 <StatusBadge status={record.status} />
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                         </TableBody>
+                       </Table>
+                     )}
+                   </TabsContent>
+                 </Tabs>
                </CardContent>
              </Card>
            </div>

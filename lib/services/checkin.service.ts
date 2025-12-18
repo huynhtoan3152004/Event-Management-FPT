@@ -11,7 +11,7 @@ export interface CheckInRecord {
   attendeeName: string
   ticketCode: string
   checkInTime: string
-  status: 'entered' | 'already_used' | 'not_found' | 'cancelled'
+  status: 'entered' | 'already_used' | 'not_found' | 'cancelled' | 'checked_out'
   seatInfo?: string
 }
 

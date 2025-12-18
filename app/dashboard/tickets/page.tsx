@@ -88,7 +88,10 @@ export default function MyTicketsPage() {
       } else if (activeTab === "abandoned") {
         // Tham dự nhưng không check-out: ticket status là abandoned
         return ticket.status === "abandoned"
-      } 
+      } else if (activeTab === "cancelled") {
+        // Đã hủy vé: ticket status là cancelled
+        return ticket.status === "cancelled"
+      }
       return false
     })
   }
@@ -185,7 +188,7 @@ export default function MyTicketsPage() {
             <TabsTrigger value="checked-in">Đã check-in</TabsTrigger>
             <TabsTrigger value="completed">Đã check-out</TabsTrigger>
             <TabsTrigger value="abandoned">Tham dự nhưng không check-out</TabsTrigger>
-            {/* <TabsTrigger value="used">Đã sử dụng</TabsTrigger> */}
+            <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
           </TabsList>
 
           {isLoading ? (

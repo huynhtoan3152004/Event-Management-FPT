@@ -87,12 +87,15 @@ export const authService = {
 
   /**
    * Kiểm tra user đã đăng nhập chưa
+   * Note: Đã tắt check expiry để hỗ trợ demo với time hệ thống khác
    */
   isAuthenticated(): boolean {
     const token = this.getToken()
     if (!token) return false
 
-    // Kiểm tra token có hết hạn không
+    // DEMO MODE: Bỏ check expiry để có thể chỉnh time hệ thống khi demo
+    // Uncomment đoạn dưới nếu muốn bật lại check expiry sau khi demo
+    /*
     const expiresAt = localStorage.getItem('expiresAt')
     if (expiresAt) {
       const expiryDate = new Date(expiresAt)
@@ -101,6 +104,7 @@ export const authService = {
         return false
       }
     }
+    */
 
     return true
   },

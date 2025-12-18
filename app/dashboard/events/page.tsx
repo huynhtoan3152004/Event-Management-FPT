@@ -56,9 +56,10 @@ export default function StudentEventsPage() {
     const fetchEvents = async () => {
       try {
         setIsLoading(true)
+        // Optimize: Giảm pageSize nếu không cần thiết, chỉ fetch khi cần
         const response = await eventService.getAllEvents({
           pageNumber: 1,
-          pageSize: 100, // Lấy nhiều events để hiển thị
+          pageSize: 50, // Giảm từ 100 xuống 50 để load nhanh hơn
           status: activeTab === "active" || activeTab === "registered" ? undefined : activeTab, // active và registered sẽ filter sau
         })
         
@@ -336,14 +337,14 @@ function EventCard({
             Đăng ký ngay
           </Button>
         ) : (
-          <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
-            <Button
+        <Link href={`/dashboard/events/${event.eventId}`} className="block mt-auto">
+          <Button
               variant="outline"
-              className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300"
-            >
+            className="w-full rounded-full h-9 text-sm font-semibold shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-300"
+          >
               Đăng ký ngay
-            </Button>
-          </Link>
+          </Button>
+        </Link>
         )}
       </CardContent>
     </Card>

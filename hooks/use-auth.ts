@@ -30,34 +30,47 @@ export function useLogin() {
       // Lưu token + thông tin user
       authService.saveAuthData(data);
 
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      // Set user data vào query cache ngay lập tức (không cần API call)
+      queryClient.setQueryData(["user", "current"], {
+        userId: data.userId,
+        email: data.email,
+        name: data.name,
+        role: data.roleId,
+      });
 
+      // Show toast nhưng không chờ nó close
       toast.success("Đăng nhập thành công!", {
         position: "top-right",
         autoClose: 2000,
       });
 
+      // Redirect ngay lập tức (không chờ toast)
+      // Dùng window.location.href để force reload và đảm bảo protected routes được validate lại
       // Nếu có redirectUrl từ event → quay lại đúng sự kiện
       if (redirectUrl) {
-        router.push(redirectUrl);
+        window.location.href = redirectUrl;
         return;
       }
 
       // Nếu không có redirectUrl → dùng logic theo role
       const roleId = data.roleId?.toLowerCase();
+      let targetUrl = "/dashboard";
       switch (roleId) {
         case "student":
-          router.push("/dashboard/events");
+          targetUrl = "/dashboard/events";
           break;
         case "organizer":
-          router.push("/organizer/events");
+          targetUrl = "/organizer/events";
           break;
         case "staff":
-          router.push("/staff");
+          targetUrl = "/staff";
           break;
         default:
-          router.push("/dashboard");
+          targetUrl = "/dashboard";
       }
+      
+      // Dùng window.location.href để force reload
+      window.location.href = targetUrl;
     },
 
     onError: (error: any) => {
