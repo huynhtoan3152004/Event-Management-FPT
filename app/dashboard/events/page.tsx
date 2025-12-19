@@ -1,6 +1,35 @@
 /* ============================================
-   Student Events Page
-   Browse and register for events
+   STUDENT EVENTS PAGE - Trang danh sách sự kiện cho sinh viên
+   
+   MÔ TẢ:
+   - Trang này cho phép sinh viên xem danh sách tất cả sự kiện có sẵn
+   - Sinh viên có thể tìm kiếm, lọc theo trạng thái (sắp diễn ra, đang diễn ra, đã đăng ký, đã hoàn thành)
+   - Hiển thị thông tin: tiêu đề, ngày giờ, địa điểm, số người đã đăng ký, tỷ lệ đăng ký
+   - Cho phép xem chi tiết và đăng ký sự kiện
+   
+   API ĐƯỢC GỌI:
+   1. GET /api/Events - Lấy danh sách sự kiện (từ eventService.getAllEvents)
+      - Query params: pageNumber, pageSize, status
+      - Dữ liệu trả về: Danh sách EventListItem từ bảng Events
+   
+   2. GET /api/users/me/tickets - Lấy danh sách vé của user hiện tại (từ ticketService.getMyTickets)
+      - Dữ liệu trả về: Danh sách TicketDto từ bảng Tickets
+      - Mục đích: Xác định sự kiện nào user đã đăng ký để hiển thị badge "Đã đăng ký"
+   
+   BẢNG DATABASE LIÊN QUAN:
+   - events: Lưu thông tin sự kiện (title, date, startTime, endTime, location, status, totalSeats, registeredCount...)
+   - tickets: Lưu thông tin vé đăng ký (ticketId, eventId, studentId, status, registeredAt...)
+   
+   LOGIC QUAN TRỌNG:
+   1. Filter sự kiện theo tab:
+      - "published": Sự kiện có status="published" và chưa bắt đầu (now < startDateTime)
+      - "active": Sự kiện đang diễn ra (status="published" và now >= startDateTime && now <= endDateTime)
+      - "registered": Sự kiện mà user đã đăng ký (có ticket với status != "cancelled")
+      - "completed": Sự kiện đã hoàn thành (status="completed")
+   
+   2. Kiểm tra đã đăng ký: Dựa vào danh sách tickets, tạo Set các eventId đã đăng ký
+   
+   3. Tìm kiếm: Filter theo title hoặc description chứa searchQuery
    ============================================ */
 
 "use client"
@@ -19,13 +48,31 @@ import { ticketService, TicketDto } from "@/lib/services/ticket.service"
 import { toast } from "react-toastify"
 
 export default function StudentEventsPage() {
+  // State quản lý tìm kiếm
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // State lưu danh sách sự kiện từ API
   const [events, setEvents] = useState<EventListItem[]>([])
+  
+  // State lưu danh sách vé của user (để xác định đã đăng ký sự kiện nào)
   const [tickets, setTickets] = useState<TicketDto[]>([])
+  
+  // State loading khi fetch dữ liệu
   const [isLoading, setIsLoading] = useState(true)
+  
+  // State tab hiện tại: "published", "active", "registered", "completed"
   const [activeTab, setActiveTab] = useState("published")
 
-  // Helper function to check if event is currently ongoing
+  /**
+   * HÀM KIỂM TRA SỰ KIỆN ĐANG DIỄN RA
+   * 
+   * Logic: Sự kiện đang diễn ra khi:
+   * - Status = "published" (đã được publish)
+   * - Thời gian hiện tại >= thời gian bắt đầu
+   * - Thời gian hiện tại <= thời gian kết thúc
+   * 
+   * Dữ liệu từ: event.date, event.startTime, event.endTime từ bảng Events
+   */
   const isEventOngoing = (event: EventListItem): boolean => {
     const now = new Date()
     const startDateTime = new Date(`${event.date}T${event.startTime}`)
@@ -39,7 +86,15 @@ export default function StudentEventsPage() {
     )
   }
 
-  // Helper function to check if event is upcoming (chưa bắt đầu)
+  /**
+   * HÀM KIỂM TRA SỰ KIỆN SẮP DIỄN RA (chưa bắt đầu)
+   * 
+   * Logic: Sự kiện sắp diễn ra khi:
+   * - Status = "published" (đã được publish)
+   * - Thời gian hiện tại < thời gian bắt đầu
+   * 
+   * Dữ liệu từ: event.date, event.startTime từ bảng Events
+   */
   const isEventUpcoming = (event: EventListItem): boolean => {
     const now = new Date()
     const startDateTime = new Date(`${event.date}T${event.startTime}`)
@@ -51,7 +106,30 @@ export default function StudentEventsPage() {
     )
   }
 
-  // Fetch events from API
+  /**
+   * EFFECT: FETCH DANH SÁCH SỰ KIỆN TỪ API
+   * 
+   * API: GET /api/Events
+   * Service: eventService.getAllEvents()
+   * 
+   * Query params gửi lên:
+   * - pageNumber: 1
+   * - pageSize: 50
+   * - status: Tùy theo activeTab (trừ "active" và "registered" sẽ filter sau)
+   * 
+   * Dữ liệu trả về: PagedResponse<EventListItem>
+   * - Lấy từ bảng Events trong database
+   * - Bao gồm: eventId, title, description, date, startTime, endTime, location, 
+   *   imageUrl, status, totalSeats, registeredCount, etc.
+   * 
+   * Logic filter sau khi nhận dữ liệu:
+   * - "published": Filter sự kiện sắp diễn ra (chưa bắt đầu)
+   * - "active": Filter sự kiện đang diễn ra
+   * - "registered": Filter sự kiện user đã đăng ký (dựa vào tickets)
+   * - "completed": Filter sự kiện đã hoàn thành
+   * 
+   * Chạy lại khi: activeTab thay đổi
+   */
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -100,7 +178,24 @@ export default function StudentEventsPage() {
     fetchEvents()
   }, [activeTab])
 
-  // Fetch tickets để nhận biết đã đăng ký
+  /**
+   * EFFECT: FETCH DANH SÁCH VÉ CỦA USER
+   * 
+   * API: GET /api/users/me/tickets
+   * Service: ticketService.getMyTickets()
+   * 
+   * Dữ liệu trả về: ApiResponse<TicketDto[]>
+   * - Lấy từ bảng Tickets trong database
+   * - Filter theo studentId = user hiện tại
+   * - Bao gồm: ticketId, ticketCode, eventId, status, seatId, etc.
+   * 
+   * Mục đích: 
+   * - Xác định sự kiện nào user đã đăng ký
+   * - Hiển thị badge "Đã đăng ký" trên event card
+   * - Filter tab "registered" để chỉ hiển thị sự kiện đã đăng ký
+   * 
+   * Chạy 1 lần khi component mount
+   */
   useEffect(() => {
     const fetchTickets = async () => {
       try {
@@ -115,6 +210,20 @@ export default function StudentEventsPage() {
     fetchTickets()
   }, [])
 
+  /**
+   * MEMOIZED: TẠO SET CÁC EVENT ID ĐÃ ĐĂNG KÝ
+   * 
+   * Logic:
+   * - Duyệt qua danh sách tickets
+   * - Lấy eventId của các ticket có status != "cancelled"
+   * - Tạo Set để lookup nhanh O(1)
+   * 
+   * Sử dụng: 
+   * - Kiểm tra event đã đăng ký trong EventCard component
+   * - Filter tab "registered"
+   * 
+   * Re-compute khi: tickets thay đổi
+   */
   const registeredEventIds = useMemo(() => {
     const ids = new Set<string>()
     tickets.forEach((t) => {
@@ -123,7 +232,19 @@ export default function StudentEventsPage() {
     return ids
   }, [tickets])
 
-  // Filter events based on search query (và tab đã đăng ký)
+  /**
+   * FILTER SỰ KIỆN THEO TÌM KIẾM VÀ TAB
+   * 
+   * Logic:
+   * 1. Tìm kiếm: Kiểm tra title hoặc description có chứa searchQuery (case-insensitive)
+   * 2. Tab "registered": Chỉ hiển thị sự kiện có eventId trong registeredEventIds
+   * 3. Các tab khác: Hiển thị tất cả sự kiện match search query
+   * 
+   * Dữ liệu từ:
+   * - events: Danh sách đã filter theo tab
+   * - searchQuery: Từ input tìm kiếm
+   * - registeredEventIds: Set các eventId đã đăng ký
+   */
   const filteredEvents = events.filter((event) => {
     const matchesSearch =
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,7 +341,25 @@ export default function StudentEventsPage() {
   )
 }
 
-// Event Card Component
+/**
+ * EVENT CARD COMPONENT - Component hiển thị thông tin 1 sự kiện
+ * 
+ * Props:
+ * - event: EventListItem - Thông tin sự kiện từ API (bảng Events)
+ * - registeredEventIds: Set<string> - Danh sách eventId đã đăng ký
+ * 
+ * Hiển thị:
+ * - Ảnh sự kiện (imageUrl từ Events)
+ * - Badge trạng thái (published, draft, pending, cancelled, completed)
+ * - Tiêu đề, ngày giờ, địa điểm
+ * - Số người đã đăng ký / tổng số ghế
+ * - Progress bar tỷ lệ đăng ký
+ * - Button "Đăng ký ngay" hoặc "Đã đăng ký" (disabled)
+ * 
+ * Dữ liệu từ bảng Events:
+ * - title, description, date, startTime, endTime, location
+ * - imageUrl, status, totalSeats, registeredCount
+ */
 function EventCard({
   event,
   registeredEventIds,
@@ -228,19 +367,48 @@ function EventCard({
   event: EventListItem
   registeredEventIds: Set<string>
 }) {
+  /**
+   * FORMAT NGÀY THEO ĐỊNH DẠNG VIỆT NAM
+   * Input: "2025-01-15" (từ event.date)
+   * Output: "15/01/2025"
+   */
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
+  /**
+   * FORMAT THỜI GIAN CHỈ LẤY HH:mm
+   * Input: "14:30:00" (từ event.startTime/endTime)
+   * Output: "14:30"
+   */
   const formatTime = (timeStr: string) => {
     return timeStr.substring(0, 5) // HH:mm
   }
 
-  const registeredCount = event.registeredCount || 0
-  const totalSeats = event.totalSeats || 0
-  const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0
+  // Tính toán số liệu từ dữ liệu Events
+  const registeredCount = event.registeredCount || 0  // Số người đã đăng ký (từ Events.registered_count)
+  const totalSeats = event.totalSeats || 0            // Tổng số ghế (từ Events.total_seats)
+  const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0  // Tỷ lệ đăng ký (%)
 
+  /**
+   * HÀM TẠO BADGE TRẠNG THÁI SỰ KIỆN
+   * 
+   * Logic:
+   * - Kiểm tra status từ Events.status
+   * - Nếu status = "published", kiểm tra thêm có đang diễn ra không
+   *   + Đang diễn ra: now >= startDateTime && now <= endDateTime
+   *   + Sắp diễn ra: now < startDateTime
+   * 
+   * Status từ bảng Events:
+   * - "draft": Bản nháp (chưa submit)
+   * - "pending": Chờ duyệt (đã submit, chờ staff duyệt)
+   * - "published": Đã publish (đã được duyệt, có thể đăng ký)
+   * - "cancelled": Đã hủy
+   * - "completed": Đã hoàn thành
+   * 
+   * Return: Badge component với label và variant tương ứng
+   */
   const getStatusBadge = (status: string, event: EventListItem) => {
     // Check if event is ongoing
     const now = new Date()
@@ -320,6 +488,23 @@ function EventCard({
           </div>
         )}
 
+        {/* 
+          BUTTON ĐĂNG KÝ / ĐÃ ĐĂNG KÝ
+          
+          Logic hiển thị button:
+          1. Nếu eventId có trong registeredEventIds (đã đăng ký):
+             - Hiển thị "Đã đăng ký" (disabled, variant="secondary")
+             - Dữ liệu từ: Tickets table (có ticket với eventId và status != "cancelled")
+          
+          2. Nếu event.status === "completed" (đã hoàn thành):
+             - Hiển thị "Đăng ký ngay" (disabled)
+             - Không cho đăng ký sự kiện đã kết thúc
+          
+          3. Các trường hợp khác:
+             - Hiển thị "Đăng ký ngay" (clickable)
+             - Link đến trang chi tiết: /dashboard/events/{eventId}
+             - Tại trang chi tiết, user có thể đăng ký
+        */}
         {registeredEventIds.has(event.eventId) ? (
           <Button
             variant="secondary"

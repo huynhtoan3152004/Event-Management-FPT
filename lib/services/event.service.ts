@@ -1,6 +1,28 @@
 /* ============================================
-   Event Service
-   Gọi API sự kiện (create, fetch)
+   EVENT SERVICE - Service gọi API sự kiện
+   
+   MÔ TẢ:
+   - Service này chứa tất cả các hàm gọi API liên quan đến Events
+   - Bao gồm: lấy danh sách, lấy chi tiết, tạo, cập nhật, xóa, publish, lấy ghế, statistics
+   
+   API ENDPOINTS SỬ DỤNG:
+   - GET /api/Events - Lấy danh sách sự kiện (có pagination và filter)
+   - GET /api/Events/{id} - Lấy chi tiết 1 sự kiện
+   - POST /api/Events - Tạo sự kiện mới (multipart/form-data)
+   - PUT /api/Events/{id} - Cập nhật sự kiện (multipart/form-data)
+   - DELETE /api/Events/{id} - Xóa sự kiện
+   - POST /api/Events/{id}/publish - Publish sự kiện
+   - GET /api/Events/{id}/seats - Lấy danh sách ghế của sự kiện
+   - GET /api/Events/{id}/statistics - Lấy thống kê sự kiện
+   - GET /api/Seats/events/{id}/checkin-map - Lấy bản đồ ghế cho check-in
+   
+   BẢNG DATABASE LIÊN QUAN:
+   - events: Bảng chính lưu thông tin sự kiện
+   - seats: Bảng ghế (liên kết với events qua eventId)
+   - tickets: Bảng vé (liên kết với events qua eventId)
+   - halls: Bảng hội trường (liên kết với events qua hallId)
+   - event_speakers: Bảng quan hệ nhiều-nhiều giữa events và speakers
+   - speakers: Bảng diễn giả
    ============================================ */
 
 import apiClient from "@/lib/api/client"
@@ -177,6 +199,30 @@ export const eventService = {
 
   /* ===== Event Detail ===== */
 
+  /**
+   * LẤY CHI TIẾT 1 SỰ KIỆN
+   * 
+   * API: GET /api/Events/{eventId}
+   * 
+   * Response: { success: boolean, data: EventDetailDto, message?: string }
+   * 
+   * Dữ liệu trả về (EventDetailDto) từ bảng Events:
+   * - eventId, title, description, date, startTime, endTime, location
+   * - imageUrl, status, totalSeats, registeredCount, availableSeats
+   * - hallId, hallName (join với bảng Halls)
+   * - organizerId, organizerName (join với bảng Users)
+   * - clubId, clubName
+   * - registrationStart, registrationEnd
+   * - maxTicketsPerUser
+   * - approvedBy, approvedAt, rejectionReason (nếu có)
+   * - checkedInCount (từ bảng Tickets, count tickets có checkInTime != null)
+   * - speakers[] (join với bảng EventSpeakers và Speakers)
+   *   + speakerId, name, title, organization, imageUrl
+   * 
+   * Sử dụng:
+   * - Trang chi tiết sự kiện
+   * - Hiển thị đầy đủ thông tin để user đăng ký
+   */
   async getEventById(
     eventId: string
   ): Promise<{ success: boolean; data: EventDetailDto; message?: string }> {
@@ -188,6 +234,35 @@ export const eventService = {
 
   /* ===== Event List ===== */
 
+  /**
+   * LẤY DANH SÁCH SỰ KIỆN (CÓ PAGINATION VÀ FILTER)
+   * 
+   * API: GET /api/Events
+   * 
+   * Query Parameters:
+   * - pageNumber: Số trang (mặc định: 1)
+   * - pageSize: Số item mỗi trang (mặc định: 10)
+   * - search: Tìm kiếm theo title/description
+   * - status: Lọc theo status (draft, pending, published, completed, cancelled)
+   * - dateFrom: Lọc từ ngày
+   * - dateTo: Lọc đến ngày
+   * - hallId: Lọc theo hội trường
+   * - organizerId: Lọc theo organizer
+   * 
+   * Response: PagedResponse<EventListItem>
+   * - success: boolean
+   * - data: EventListItem[] - Danh sách sự kiện từ bảng Events
+   * - pagination: Thông tin phân trang (currentPage, pageSize, totalItems, totalPages, hasPrevious, hasNext)
+   * 
+   * Dữ liệu từ bảng Events:
+   * - eventId, title, description, date, startTime, endTime, location
+   * - imageUrl, status, totalSeats, registeredCount, availableSeats
+   * - clubName, registrationStart, registrationEnd, createdAt, organizerId, tags
+   * 
+   * Sử dụng:
+   * - Trang danh sách sự kiện (student/organizer)
+   * - Filter và tìm kiếm sự kiện
+   */
   async getAllEvents(
     params?: EventFilterParams
   ): Promise<PagedResponse<EventListItem>> {
@@ -216,6 +291,36 @@ export const eventService = {
 
   /* ===== Seats (Basic) ===== */
 
+  /**
+   * LẤY DANH SÁCH GHẾ CỦA SỰ KIỆN
+   * 
+   * API: GET /api/Events/{eventId}/seats
+   * 
+   * Response: { success: boolean, data: SeatDto[], message?: string }
+   * 
+   * Dữ liệu trả về (SeatDto[]) từ bảng Seats:
+   * - seatId: ID ghế
+   * - seatNumber: Số ghế (ví dụ: "1", "2", "A1")
+   * - rowLabel: Nhãn hàng (ví dụ: "A", "B", "Row 1")
+   * - section: Khu vực (nếu có)
+   * - status: Trạng thái ghế
+   *   + "available": Còn trống, có thể đặt
+   *   + "reserved": Đã được đặt (có ticket với status = "active")
+   *   + "occupied": Đã check-in (có ticket với checkInTime != null)
+   *   + "blocked": Bị chặn (không cho đặt)
+   * - hallId: ID hội trường (nếu có)
+   * 
+   * Logic backend:
+   * - Filter Seats theo eventId
+   * - Join với Tickets để xác định status:
+   *   + Nếu có ticket với status = "active" → status = "reserved"
+   *   + Nếu có ticket với checkInTime != null → status = "occupied"
+   *   + Nếu không có ticket → status = "available"
+   * 
+   * Sử dụng:
+   * - Hiển thị grid chọn ghế khi đăng ký
+   * - Chỉ hiển thị ghế có status = "available" để chọn
+   */
   async getEventSeats(
     eventId: string
   ): Promise<{ success: boolean; data: SeatDto[]; message?: string }> {

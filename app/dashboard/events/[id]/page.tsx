@@ -1,6 +1,65 @@
 /* ============================================
-   Student Event Detail Page
-   Xem chi tiết sự kiện và đăng ký
+   STUDENT EVENT DETAIL PAGE - Trang chi tiết sự kiện và đăng ký
+   
+   MÔ TẢ:
+   - Trang này cho phép sinh viên xem chi tiết sự kiện và đăng ký tham gia
+   - Hiển thị đầy đủ thông tin: tiêu đề, mô tả, ngày giờ, địa điểm, diễn giả, số ghế
+   - Cho phép chọn ghế (nếu event có hall)
+   - Xử lý đăng ký vé và hiển thị QR code sau khi đăng ký thành công
+   
+   API ĐƯỢC GỌI:
+   1. GET /api/Events/{eventId} - Lấy chi tiết sự kiện (eventService.getEventById)
+      - Dữ liệu trả về: EventDetailDto từ bảng Events
+      - Bao gồm: title, description, date, startTime, endTime, location, hallId, 
+        hallName, organizerName, totalSeats, registeredCount, speakers, etc.
+   
+   2. GET /api/Events/{eventId}/seats - Lấy danh sách ghế (eventService.getEventSeats)
+      - Dữ liệu trả về: SeatDto[] từ bảng Seats
+      - Filter theo eventId
+      - Bao gồm: seatId, seatNumber, rowLabel, status (available/reserved/occupied/blocked)
+   
+   3. GET /api/users/me/tickets - Kiểm tra đã đăng ký chưa (ticketService.getMyTickets)
+      - Dữ liệu trả về: TicketDto[] từ bảng Tickets
+      - Mục đích: Kiểm tra xem user đã có ticket với eventId này chưa
+   
+   4. POST /api/Events/{eventId}/register - Đăng ký vé (ticketService.registerTicket)
+      - Body: { seatId?: string, seatPreference?: string }
+      - Dữ liệu trả về: TicketDto (ticketId, ticketCode, status, etc.)
+      - Backend sẽ:
+        + Tạo record mới trong bảng Tickets
+        + Gán ghế (nếu có seatId hoặc tự động chọn ghế trống)
+        + Cập nhật Events.registeredCount
+        + Cập nhật Seats.status = "reserved" (nếu có ghế)
+   
+   5. GET /api/tickets/{ticketCode} - Lấy thông tin vé theo mã (ticketService.getTicketByCode)
+      - Dữ liệu trả về: TicketDto từ bảng Tickets
+      - Mục đích: Lấy thông tin vé sau khi đăng ký để hiển thị QR
+   
+   BẢNG DATABASE LIÊN QUAN:
+   - events: Thông tin sự kiện (eventId, title, date, startTime, endTime, location, 
+            hallId, status, totalSeats, registeredCount, registrationStart, registrationEnd)
+   - tickets: Thông tin vé (ticketId, eventId, studentId, seatId, ticketCode, status, registeredAt)
+   - seats: Thông tin ghế (seatId, eventId, hallId, seatNumber, rowLabel, status)
+   - event_speakers: Quan hệ nhiều-nhiều giữa Events và Speakers
+   - speakers: Thông tin diễn giả (speakerId, name, title, organization, imageUrl)
+   
+   LOGIC QUAN TRỌNG:
+   1. Kiểm tra đăng ký mở:
+      - event.status === "published"
+      - Có registrationStart và registrationEnd
+      - now >= registrationStart && now <= registrationEnd
+      - availableSeats > 0
+   
+   2. Chọn ghế:
+      - Nếu event có hallId, fetch danh sách ghế
+      - User có thể chọn ghế cụ thể hoặc để hệ thống tự chọn
+      - Chỉ ghế có status = "available" mới được chọn
+   
+   3. Đăng ký vé:
+      - Gửi seatId nếu user đã chọn ghế
+      - Backend tự động chọn ghế trống nếu không có seatId
+      - Sau khi đăng ký thành công, tạo QR code từ ticketCode
+      - Refresh lại event data để cập nhật số lượng đăng ký
    ============================================ */
 
 "use client"
@@ -36,21 +95,40 @@ import { ticketService, RegisterTicketRequest } from "@/lib/services/ticket.serv
 export default function StudentEventDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const eventId = params.id as string
+  const eventId = params.id as string  // Lấy eventId từ URL params
 
-  const [event, setEvent] = useState<EventDetailDto | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRegistering, setIsRegistering] = useState(false)
-  const [seats, setSeats] = useState<SeatDto[]>([])
-  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
-  const [selectedSeatId, setSelectedSeatId] = useState<string>("")
-  const [seatPreference, setSeatPreference] = useState<string>("")
-  const [isSeatGridOpen, setIsSeatGridOpen] = useState(false)
-  const [qrModalUrl, setQrModalUrl] = useState<string>("")
-  const [qrTicketCode, setQrTicketCode] = useState<string>("")
-  const [hasRegistered, setHasRegistered] = useState(false)
+  // State quản lý dữ liệu sự kiện
+  const [event, setEvent] = useState<EventDetailDto | null>(null)  // Chi tiết sự kiện từ Events table
+  const [isLoading, setIsLoading] = useState(true)  // Loading khi fetch event
+  
+  // State quản lý đăng ký
+  const [isRegistering, setIsRegistering] = useState(false)  // Loading khi đang đăng ký
+  const [hasRegistered, setHasRegistered] = useState(false)  // Đã đăng ký chưa (từ Tickets table)
+  
+  // State quản lý ghế
+  const [seats, setSeats] = useState<SeatDto[]>([])  // Danh sách ghế từ Seats table
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false)  // Loading khi fetch seats
+  const [selectedSeatId, setSelectedSeatId] = useState<string>("")  // Ghế đã chọn (seatId)
+  const [seatPreference, setSeatPreference] = useState<string>("")  // Preference (chưa dùng)
+  const [isSeatGridOpen, setIsSeatGridOpen] = useState(false)  // Mở modal chọn ghế
+  
+  // State quản lý QR code
+  const [qrModalUrl, setQrModalUrl] = useState<string>("")  // URL QR code (từ qrserver.com)
+  const [qrTicketCode, setQrTicketCode] = useState<string>("")  // Mã vé để tạo QR
 
-  // Group seats upfront to keep hook order consistent even when early-return loading
+  /**
+   * MEMOIZED: NHÓM GHẾ THEO ROW
+   * 
+   * Logic:
+   * - Nhóm các ghế theo rowLabel (từ Seats.rowLabel)
+   * - Sắp xếp ghế trong mỗi row theo seatNumber (numeric sort)
+   * - Sắp xếp các row theo thứ tự alphabet
+   * 
+   * Dữ liệu từ: seats (SeatDto[] từ Seats table)
+   * Sử dụng: Hiển thị grid chọn ghế trong modal
+   * 
+   * Re-compute khi: seats thay đổi
+   */
   const groupedSeats = useMemo(() => {
     const groups = seats.reduce<Record<string, SeatDto[]>>((acc, seat) => {
       const row = seat.rowLabel || "Row"
@@ -66,11 +144,36 @@ export default function StudentEventDetailPage() {
       .sort((a, b) => a.row.localeCompare(b.row))
   }, [seats])
 
+  /**
+   * MEMOIZED: TÍNH SỐ GHẾ TỐI ĐA TRONG 1 ROW
+   * 
+   * Mục đích: Để layout grid chọn ghế đều nhau
+   * Dữ liệu từ: groupedSeats
+   * 
+   * Re-compute khi: groupedSeats thay đổi
+   */
   const maxSeatsPerRow = useMemo(
     () => groupedSeats.reduce((m, g) => Math.max(m, g.seats.length), 0),
     [groupedSeats]
   )
 
+  /**
+   * EFFECT: FETCH CHI TIẾT SỰ KIỆN
+   * 
+   * API: GET /api/Events/{eventId}
+   * Service: eventService.getEventById()
+   * 
+   * Dữ liệu trả về: EventDetailDto từ bảng Events
+   * - Bao gồm: eventId, title, description, date, startTime, endTime, location,
+   *   hallId, hallName, organizerName, status, totalSeats, registeredCount,
+   *   registrationStart, registrationEnd, speakers, etc.
+   * 
+   * Logic sau khi fetch:
+   * - Nếu event có hallId, tự động fetch danh sách ghế
+   * - Nếu không tìm thấy event, redirect về trang danh sách
+   * 
+   * Chạy lại khi: eventId hoặc router thay đổi
+   */
   useEffect(() => {
     const fetchEvent = async () => {
       try {
@@ -101,7 +204,26 @@ export default function StudentEventDetailPage() {
     }
   }, [eventId, router])
 
-  // Kiểm tra xem user đã đăng ký event này chưa
+  /**
+   * EFFECT: KIỂM TRA USER ĐÃ ĐĂNG KÝ CHƯA
+   * 
+   * API: GET /api/users/me/tickets
+   * Service: ticketService.getMyTickets()
+   * 
+   * Dữ liệu trả về: TicketDto[] từ bảng Tickets
+   * - Filter theo studentId = user hiện tại
+   * - Bao gồm: ticketId, eventId, status, ticketCode, etc.
+   * 
+   * Logic:
+   * - Kiểm tra xem có ticket nào với eventId này và status != "cancelled"
+   * - Set hasRegistered = true nếu đã đăng ký
+   * 
+   * Mục đích: 
+   * - Disable button đăng ký nếu đã đăng ký
+   * - Ẩn form chọn ghế nếu đã đăng ký
+   * 
+   * Chạy lại khi: eventId thay đổi
+   */
   useEffect(() => {
     const checkRegistered = async () => {
       if (!eventId) return
@@ -120,6 +242,22 @@ export default function StudentEventDetailPage() {
     checkRegistered()
   }, [eventId])
 
+  /**
+   * HÀM FETCH DANH SÁCH GHẾ
+   * 
+   * API: GET /api/Events/{eventId}/seats
+   * Service: eventService.getEventSeats()
+   * 
+   * Dữ liệu trả về: SeatDto[] từ bảng Seats
+   * - Filter theo eventId
+   * - Bao gồm: seatId, seatNumber, rowLabel, status (available/reserved/occupied/blocked)
+   * 
+   * Logic:
+   * - Chỉ fetch nếu event có hallId
+   * - Nếu không có ghế hoặc lỗi, set empty array (không hiển thị error)
+   * 
+   * Sử dụng: Hiển thị grid chọn ghế trong modal
+   */
   const fetchSeats = async (eventId: string) => {
     try {
       setIsLoadingSeats(true)
@@ -139,6 +277,52 @@ export default function StudentEventDetailPage() {
     }
   }
 
+  /**
+   * HÀM XỬ LÝ ĐĂNG KÝ VÉ
+   * 
+   * API: POST /api/Events/{eventId}/register
+   * Service: ticketService.registerTicket()
+   * 
+   * Request Body:
+   * - seatId?: string - ID ghế đã chọn (từ Seats.seatId)
+   * - seatPreference?: string - Preference (chưa dùng)
+   * 
+   * Backend xử lý:
+   * 1. Kiểm tra điều kiện đăng ký:
+   *    - Event status = "published"
+   *    - Trong thời gian đăng ký (registrationStart <= now <= registrationEnd)
+   *    - Còn ghế trống (availableSeats > 0)
+   *    - User chưa đăng ký hoặc chưa đạt maxTicketsPerUser
+   * 
+   * 2. Tạo record mới trong bảng Tickets:
+   *    - ticketId: GUID mới
+   *    - eventId: ID sự kiện
+   *    - studentId: ID user hiện tại (từ token)
+   *    - seatId: Ghế đã chọn hoặc tự động chọn ghế trống
+   *    - ticketCode: Mã vé duy nhất (để tạo QR)
+   *    - status: "active"
+   *    - registeredAt: Thời gian hiện tại
+   * 
+   * 3. Cập nhật bảng Events:
+   *    - registeredCount += 1
+   * 
+   * 4. Cập nhật bảng Seats (nếu có ghế):
+   *    - status = "reserved" (ghế đã được đặt)
+   * 
+   * Response: TicketDto
+   * - ticketId, ticketCode, status, eventId, seatId, etc.
+   * 
+   * Logic sau khi đăng ký thành công:
+   * 1. Tạo QR code từ ticketCode (dùng qrserver.com API)
+   * 2. Hiển thị modal QR code
+   * 3. Refresh event data để cập nhật số lượng đăng ký
+   * 4. Refresh danh sách ghế để cập nhật status
+   * 5. Set hasRegistered = true
+   * 
+   * Validation trước khi gọi API:
+   * - Kiểm tra isRegistrationOpen (status + thời gian + còn ghế)
+   * - Kiểm tra availableSeats > 0
+   */
   const handleRegister = async () => {
     if (!event) return
 
@@ -170,7 +354,7 @@ export default function StudentEventDetailPage() {
         request.seatPreference = seatPreference.trim()
       }
 
-      // Gọi API đăng ký
+      // Gọi API đăng ký - Tạo record trong bảng Tickets
       const response = await ticketService.registerTicket(eventId, request)
       
       if (response.success && response.data) {
@@ -180,6 +364,7 @@ export default function StudentEventDetailPage() {
         const ticketCode = response.data.ticketCode
 
         // Tạo QR code bằng third-party (qrserver) và hiển thị modal tại chỗ
+        // QR code chứa ticketCode để staff scan khi check-in
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(ticketCode)}`
         setQrModalUrl(qrUrl)
         setQrTicketCode(ticketCode)
@@ -188,8 +373,8 @@ export default function StudentEventDetailPage() {
         // Gọi song song 2 API: danh sách vé của user và chi tiết vé theo code (để lấy QR hoặc hiển thị)
         try {
           const [myTicketsRes, ticketByCodeRes] = await Promise.all([
-            ticketService.getMyTickets(),
-            ticketService.getTicketByCode(ticketCode),
+            ticketService.getMyTickets(),  // GET /api/users/me/tickets
+            ticketService.getTicketByCode(ticketCode),  // GET /api/tickets/{ticketCode}
           ])
 
           if (myTicketsRes.success) {
@@ -203,13 +388,13 @@ export default function StudentEventDetailPage() {
           console.warn("Không tải được thông tin vé sau đăng ký", fetchTicketErr)
         }
 
-        // Refresh event data để cập nhật số lượng đăng ký
+        // Refresh event data để cập nhật số lượng đăng ký (registeredCount đã tăng)
         const eventResponse = await eventService.getEventById(eventId)
         if (eventResponse.success && eventResponse.data) {
           setEvent(eventResponse.data)
         }
         
-        // Refresh danh sách ghế nếu event có hall
+        // Refresh danh sách ghế nếu event có hall (để cập nhật status ghế đã chọn)
         if (event.hallId) {
           await fetchSeats(eventId)
         }
@@ -298,12 +483,28 @@ export default function StudentEventDetailPage() {
     return null
   }
 
-  const registeredCount = event.registeredCount || 0
-  const totalSeats = event.totalSeats || 0
-  const availableSeats = totalSeats - registeredCount
-  const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0
+  // Tính toán số liệu từ dữ liệu Events table
+  const registeredCount = event.registeredCount || 0  // Số người đã đăng ký (từ Events.registered_count)
+  const totalSeats = event.totalSeats || 0            // Tổng số ghế (từ Events.total_seats)
+  const availableSeats = totalSeats - registeredCount  // Số ghế còn trống
+  const percentage = totalSeats > 0 ? Math.round((registeredCount / totalSeats) * 100) : 0  // Tỷ lệ đăng ký (%)
   
-  // Kiểm tra đăng ký mở: event phải published, có thời gian đăng ký, và trong khoảng thời gian đăng ký
+  /**
+   * KIỂM TRA ĐĂNG KÝ CÓ MỞ KHÔNG
+   * 
+   * Điều kiện đăng ký mở:
+   * 1. event.status === "published" (sự kiện đã được publish)
+   * 2. Có registrationStart và registrationEnd (đã set thời gian đăng ký)
+   * 3. Thời gian hiện tại >= registrationStart (đã đến thời gian mở đăng ký)
+   * 4. Thời gian hiện tại <= registrationEnd (chưa hết thời gian đăng ký)
+   * 5. availableSeats > 0 (còn ghế trống)
+   * 
+   * Dữ liệu từ bảng Events:
+   * - status: Trạng thái sự kiện
+   * - registrationStart: Thời gian bắt đầu đăng ký (DateTime)
+   * - registrationEnd: Thời gian kết thúc đăng ký (DateTime)
+   * - registeredCount, totalSeats: Để tính availableSeats
+   */
   const now = new Date()
   const isRegistrationOpen = event.status === "published" 
     && event.registrationStart 
@@ -312,6 +513,16 @@ export default function StudentEventDetailPage() {
     && now <= new Date(event.registrationEnd)
     && availableSeats > 0
   
+  /**
+   * KIỂM TRA ĐĂNG KÝ ĐÃ ĐÓNG THEO THỜI GIAN
+   * 
+   * Logic: Đăng ký đã đóng khi:
+   * - Event đã published
+   * - Có thời gian đăng ký
+   * - Thời gian hiện tại > registrationEnd (hết thời gian) HOẶC < registrationStart (chưa đến)
+   * 
+   * Dữ liệu từ bảng Events: registrationStart, registrationEnd
+   */
   const isRegistrationClosedByTime = event.status === "published"
     && event.registrationStart
     && event.registrationEnd
