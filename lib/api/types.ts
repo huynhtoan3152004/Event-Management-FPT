@@ -222,34 +222,6 @@ export interface UpdateProfileDto {
 
 export interface UserResponse extends ApiResponse<User> {}
 
-// ========== Auth Types ==========
-
-export interface LoginRequest {
-  email: string
-  password: string
-}
-
-export interface RegisterRequest {
-  email: string
-  password: string
-  confirmPassword: string
-  name: string
-  phone: string
-}
-
-export interface AuthResponse {
-  accessToken: string
-  expiresAt: string // ISO date string
-  userId: string
-  email: string
-  name: string
-  roleId: string | null
-  roleName: string | null
-  isNewUser: boolean
-}
-
-export interface RegisterResponse extends BackendApiResponse<null> {}
-
 // ========== Upload Types ==========
 
 export interface UploadResponse extends ApiResponse<{

@@ -138,7 +138,13 @@ export const venueService = {
   async getSeats(id: string) {
     const res = await apiClient.get<{
       success: boolean;
-      data: any[];
+      data: Array<{
+        seatId: string;
+        label: string;
+        status: string;
+        rowLabel?: string;
+        section?: string;
+      }>;
     }>(API_ENDPOINTS.VENUES.SEATS(id));
 
     return res.data;
@@ -162,7 +168,16 @@ export const venueService = {
   async getAvailability(id: string) {
     const res = await apiClient.get<{
       success: boolean;
-      data: any;
+      data: {
+        hallId: string;
+        availableDates?: string[];
+        bookedDates?: string[];
+        conflicts?: Array<{
+          eventId: string;
+          eventName: string;
+          date: string;
+        }>;
+      };
     }>(API_ENDPOINTS.VENUES.AVAILABILITY(id));
 
     return res.data;

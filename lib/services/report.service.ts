@@ -32,7 +32,7 @@ export interface SystemSummaryResponse {
       participantCount: number
     }>
   }
-  errors: null | any
+  errors: null | string[] | Record<string, string[]>
 }
 
 export interface SystemSummaryParams {
@@ -54,7 +54,7 @@ export interface MonthlyReportResponse {
   success: boolean
   message: string
   data: MonthlyReportItem[]
-  errors: null | any
+  errors: null | string[] | Record<string, string[]>
 }
 
 export interface MonthlyReportParams {
@@ -77,7 +77,7 @@ export interface EventListReportResponse {
   success: boolean
   message: string
   data: EventReportItem[]
-  errors: null | any
+  errors: null | string[] | Record<string, string[]>
 }
 
 export interface EventListReportParams {

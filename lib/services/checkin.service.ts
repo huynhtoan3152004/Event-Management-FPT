@@ -5,6 +5,7 @@
 
 import apiClient from '@/lib/api/client'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse } from '@/lib/api/types'
 
 export interface CheckInRecord {
   id: string
@@ -21,28 +22,17 @@ export interface CheckInStats {
   checkInRate: number
 }
 
-export interface ApiResponse<T> {
-  success: boolean
-  message?: string
-  data?: T
-  errors?: string[]
-}
-
-class CheckInService {
+export const checkInService = {
   /**
    * Check-in vé bằng ticket code
    * @param ticketCode - Mã vé (từ QR code)
    */
   async checkIn(ticketCode: string): Promise<ApiResponse<{ result: string }>> {
-    try {
-      const response = await apiClient.post<ApiResponse<{ result: string }>>(
-        API_ENDPOINTS.CHECKIN.CHECK_IN(ticketCode)
-      )
-      return response.data
-    } catch (error: any) {
-      throw error
-    }
-  }
+    const response = await apiClient.post<ApiResponse<{ result: string }>>(
+      API_ENDPOINTS.CHECKIN.CHECK_IN(ticketCode)
+    )
+    return response.data
+  },
 
   /**
    * Lấy danh sách check-in records của một event
@@ -54,18 +44,21 @@ class CheckInService {
         API_ENDPOINTS.CHECKIN.RECORDS(eventId)
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If 404, return failure response instead of throwing
-      if (error?.response?.status === 404) {
-        return {
-          success: false,
-          message: "Check-in records endpoint not available",
-          data: [],
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } }
+        if (axiosError.response?.status === 404) {
+          return {
+            success: false,
+            message: "Check-in records endpoint not available",
+            data: [],
+          }
         }
       }
       throw error
     }
-  }
+  },
 
   /**
    * Lấy thống kê check-in của một event
@@ -77,17 +70,18 @@ class CheckInService {
         API_ENDPOINTS.CHECKIN.STATS(eventId)
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If 404, return failure response instead of throwing
-      if (error?.response?.status === 404) {
-        return {
-          success: false,
-          message: "Check-in stats endpoint not available",
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } }
+        if (axiosError.response?.status === 404) {
+          return {
+            success: false,
+            message: "Check-in stats endpoint not available",
+          }
         }
       }
       throw error
     }
-  }
+  },
 }
-
-export const checkInService = new CheckInService()

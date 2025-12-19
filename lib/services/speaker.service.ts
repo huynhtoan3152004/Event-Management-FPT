@@ -37,7 +37,12 @@ export const speakerService = {
     const res = await apiClient.get<{
       success: boolean;
       data: SpeakerDto[];
-      pagination?: any;
+      pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(API_ENDPOINTS.SPEAKERS.BASE);
 
     return res.data;
@@ -107,7 +112,15 @@ export const speakerService = {
 
   /* ---------------------- GET SPEAKER EVENTS ---------------------- */
   async getEvents(id: string) {
-    const res = await apiClient.get<{ success: boolean; data: any[] }>(
+    const res = await apiClient.get<{ 
+      success: boolean; 
+      data: Array<{
+        eventId: string;
+        title: string;
+        date: string;
+        location?: string;
+      }> 
+    }>(
       API_ENDPOINTS.SPEAKERS.EVENTS(id)
     );
     return res.data;

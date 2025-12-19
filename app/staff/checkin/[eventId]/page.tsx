@@ -134,13 +134,13 @@
          if (statisticsResponse.success && statisticsResponse.data) {
            const data = statisticsResponse.data;
 
-           // Update stats - only if changed
-           setStats((prevStats) => {
-             const newStats = {
-               checkedIn: data.checkedInCount || 0,
-               totalRegistered: data.registeredCount || 0,
-               checkInRate: data.checkInRate || 0,
-             };
+          // Update stats - only if changed
+          setStats((prevStats) => {
+            const newStats: CheckInStats = {
+              checkedIn: Number(data.checkedInCount) || 0,
+              totalRegistered: Number(data.registeredCount) || 0,
+              checkInRate: Number(data.checkInRate) || 0,
+            };
              if (
                prevStats.checkedIn === newStats.checkedIn &&
                prevStats.totalRegistered === newStats.totalRegistered &&
@@ -151,29 +151,31 @@
              return newStats;
            });
 
-           // Update recent check-ins - only if changed
-           if (data.recentCheckIns && data.recentCheckIns.length > 0) {
-            const allRecords: CheckInRecord[] = data.recentCheckIns.map((ci: any, idx: number) => {
+          // Update recent check-ins - only if changed
+          const recentCheckIns = data.recentCheckIns as Array<Record<string, unknown>> | undefined;
+          if (recentCheckIns && Array.isArray(recentCheckIns) && recentCheckIns.length > 0) {
+           const allRecords: CheckInRecord[] = recentCheckIns.map((ci: Record<string, unknown>, idx: number) => {
               // Map API status to CheckInRecord status (chỉ dùng cho danh sách check-in)
               let recordStatus: CheckInRecord["status"] = "entered";
-              if (ci.status === "checked-in" || ci.status === "checked_in") {
+              const status = String(ci.status || "");
+              if (status === "checked-in" || status === "checked_in") {
                 recordStatus = "entered";
-              } else if (ci.status === "abandoned") {
+              } else if (status === "abandoned") {
                 recordStatus = "already_used";
-              } else if (ci.status === "cancelled") {
+              } else if (status === "cancelled") {
                 recordStatus = "cancelled";
               }
               
               return {
-                id: `${ci.ticketCode}-${ci.checkInTime || Date.now()}-${idx}`,
-                attendeeName: ci.attendeeName,
-                ticketCode: ci.ticketCode,
-                checkInTime: new Date(ci.checkInTime).toLocaleTimeString("vi-VN", {
+                id: `${String(ci.ticketCode || "")}-${String(ci.checkInTime || Date.now())}-${idx}`,
+                attendeeName: String(ci.attendeeName || ""),
+                ticketCode: String(ci.ticketCode || ""),
+                checkInTime: new Date(String(ci.checkInTime || new Date())).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",
                   minute: "2-digit",
                 }),
                 status: recordStatus,
-                seatInfo: ci.seatNumber || undefined,
+                seatInfo: ci.seatNumber ? String(ci.seatNumber) : undefined,
               };
             });
             

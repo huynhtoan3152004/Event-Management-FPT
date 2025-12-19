@@ -165,7 +165,7 @@ export const eventService = {
 
   async getEventStatistics(eventId: string): Promise<{
     success: boolean
-    data?: any
+    data?: Record<string, unknown>
     message?: string
     errors?: string[]
   }> {
@@ -227,7 +227,7 @@ export const eventService = {
 
   async getEventSeatMap(eventId: string): Promise<{
     success: boolean
-    data: any
+    data: Record<string, unknown>
     message?: string
   }> {
     const response = await apiClient.get(
@@ -244,7 +244,7 @@ export const eventService = {
     success: boolean
     data: EventSeatCheckinMapDto
     message?: string
-    errors?: any
+    errors?: string[] | Record<string, string[]>
   }> {
     const response = await apiClient.get(
       `/api/Seats/events/${eventId}/checkin-map`
