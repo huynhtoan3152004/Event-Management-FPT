@@ -64,10 +64,27 @@ export default function CreateEventPage() {
     useState<string>("");
   const [registrationEndError, setRegistrationEndError] = useState<string>("");
   const [titleError, setTitleError] = useState<string>("");
-  const [locationError, setLocationError] = useState<string>("");
 
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split("T")[0];
+  
+  // Get date 3 days from now for min attribute of event date
+  const minEventDate = new Date();
+  minEventDate.setDate(minEventDate.getDate() + 3);
+  const minEventDateStr = minEventDate.toISOString().split("T")[0];
+  
+  // Get current datetime in format for datetime-local input (YYYY-MM-DDTHH:mm)
+  const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  
+  const minDateTimeLocal = getCurrentDateTimeLocal();
 
   // Validate time range
   const validateTimeRange = (startTime: string, endTime: string) => {
@@ -88,7 +105,16 @@ export default function CreateEventPage() {
     }
   };
 
-  // Validate registration dates must be after event date
+  /**
+   * VALIDATE NGÀY ĐĂNG KÝ VÀ NGÀY KẾT THÚC ĐĂNG KÝ
+   * 
+   * Rules:
+   * 1. Không được chọn ngày/giờ trong quá khứ
+   * 2. Ngày đăng ký phải trước ngày diễn ra sự kiện
+   * 3. Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+   *    (Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng)
+   * 4. Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+   */
   const validateRegistrationDate = (
     registrationDate: string,
     field: "start" | "end"
@@ -102,10 +128,26 @@ export default function CreateEventPage() {
       return;
     }
 
+    const regDate = new Date(registrationDate);
+    const now = new Date();
+    now.setSeconds(0, 0); // Set seconds và milliseconds về 0 để so sánh chính xác
+
+    // Rule 1: Không được chọn ngày trong quá khứ
+    if (regDate < now) {
+      const errorMsg = "Không được chọn ngày/giờ trong quá khứ";
+      if (field === "start") {
+        setRegistrationStartError(errorMsg);
+      } else {
+        setRegistrationEndError(errorMsg);
+      }
+      return;
+    }
+
     const dateInput = document.getElementById("date") as HTMLInputElement;
     const eventDate = dateInput?.value;
 
     if (!eventDate) {
+      // Nếu chưa chọn ngày sự kiện, chỉ validate không được quá khứ
       if (field === "start") {
         setRegistrationStartError("");
       } else {
@@ -114,15 +156,14 @@ export default function CreateEventPage() {
       return;
     }
 
-    const regDate = new Date(registrationDate);
     const evtDate = new Date(eventDate);
     evtDate.setHours(0, 0, 0, 0);
 
-    // Set registration date to start of day for fair comparison
+    // Set registration date to start of day for fair comparison với event date
     const regDateOnly = new Date(regDate);
     regDateOnly.setHours(0, 0, 0, 0);
 
-    // Registration date must be BEFORE event date (so people can register before the event)
+    // Rule 2: Registration date must be BEFORE event date
     if (regDateOnly >= evtDate) {
       const errorMsg = "Ngày đăng ký phải trước ngày diễn ra sự kiện";
       if (field === "start") {
@@ -130,12 +171,52 @@ export default function CreateEventPage() {
       } else {
         setRegistrationEndError(errorMsg);
       }
-    } else {
-      if (field === "start") {
-        setRegistrationStartError("");
-      } else {
-        setRegistrationEndError("");
+      return;
+    }
+
+    // Rule 3: Nếu là ngày kết thúc, phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+    // Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng
+    if (field === "end") {
+      const regStartInput = document.getElementById("registrationStart") as HTMLInputElement;
+      const regStartValue = regStartInput?.value;
+      
+      if (regStartValue) {
+        const regStartDate = new Date(regStartValue);
+        
+        // Tính số giờ chênh lệch (có thể âm nếu ngày kết thúc trước ngày bắt đầu)
+        const hoursDiff = (regDate.getTime() - regStartDate.getTime()) / (1000 * 60 * 60);
+        
+        // Ngày kết thúc phải sau ngày bắt đầu ít nhất 2 tiếng
+        if (hoursDiff < 2) {
+          setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng");
+          return;
+        }
       }
+    }
+
+    // Nếu là ngày bắt đầu, kiểm tra ngày kết thúc có hợp lệ không
+    if (field === "start") {
+      const regEndInput = document.getElementById("registrationEnd") as HTMLInputElement;
+      const regEndValue = regEndInput?.value;
+      
+      if (regEndValue) {
+        const regEndDate = new Date(regEndValue);
+        const hoursDiff = (regEndDate.getTime() - regDate.getTime()) / (1000 * 60 * 60);
+        
+        // Ngày kết thúc phải sau ngày bắt đầu ít nhất 2 tiếng
+        if (hoursDiff < 2) {
+          setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng");
+        } else {
+          setRegistrationEndError("");
+        }
+      }
+    }
+
+    // Clear error nếu tất cả validation đều pass
+    if (field === "start") {
+      setRegistrationStartError("");
+    } else {
+      setRegistrationEndError("");
     }
   };
 
@@ -151,7 +232,7 @@ export default function CreateEventPage() {
         }
       } catch (error) {
         toast.error(
-          "Không tải được danh sách hall, hãy thử lại hoặc nhập Location thủ công."
+          "Không tải được danh sách hall, hãy thử lại."
         );
       } finally {
         setIsHallsLoading(false);
@@ -180,19 +261,30 @@ export default function CreateEventPage() {
     };
     fetchSpeakers();
   }, []);
-  // Convert datetime-local -> ISO string có timezone (+07:00)
+  /**
+   * CONVERT DATETIME-LOCAL TO UTC ISO STRING
+   * 
+   * Vấn đề: Backend nhận DateTime và dùng DateTime.SpecifyKind(..., DateTimeKind.Utc)
+   * Backend coi datetime đã được gửi là UTC và chỉ set Kind, không convert timezone.
+   * 
+   * Giải pháp: Frontend cần gửi datetime ở UTC (không có timezone offset)
+   * 
+   * Input: "2025-01-20T08:00" (local time từ datetime-local input)
+   * Output: "2025-01-20T01:00:00Z" (UTC, nếu local timezone là +07:00)
+   * 
+   * Logic:
+   * 1. Parse datetime-local string như local time
+   * 2. Convert sang UTC bằng toISOString()
+   * 3. Backend sẽ nhận UTC và lưu đúng
+   */
   const toLocalISOStringWithOffset = (local: string) => {
-    // local: "2025-01-20T08:00"
+    // local: "2025-01-20T08:00" (datetime-local format, không có timezone)
+    // JavaScript sẽ parse nó như local time của browser
     const d = new Date(local);
-
-    const offsetMinutes = -d.getTimezoneOffset(); // phút
-    const sign = offsetMinutes >= 0 ? "+" : "-";
-    const pad = (n: number) => String(Math.abs(n)).padStart(2, "0");
-
-    const hours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
-    const minutes = pad(Math.abs(offsetMinutes) % 60);
-
-    return d.toISOString().replace("Z", `${sign}${hours}:${minutes}`);
+    
+    // Convert sang UTC và trả về ISO string với "Z" (UTC)
+    // Ví dụ: "2025-01-20T01:00:00.000Z" nếu local timezone là +07:00
+    return d.toISOString();
   };
 
   const postEvent = async (payload: {
@@ -231,8 +323,6 @@ export default function CreateEventPage() {
 
     if (payload.description?.trim())
       formDataApi.append("Description", payload.description);
-    if (payload.location?.trim())
-      formDataApi.append("Location", payload.location);
     // HallId optional; append only when provided
     if (payload.hallId?.trim()) {
       formDataApi.append("HallId", payload.hallId);
@@ -258,16 +348,8 @@ if (payload.registrationEnd) {
       if (tagsValue.trim()) formDataApi.append("Tags", tagsValue);
     }
 
-    if (
-      payload.maxTicketsPerUser !== undefined &&
-      payload.maxTicketsPerUser >= 1 &&
-      payload.maxTicketsPerUser <= 10
-    ) {
-      formDataApi.append(
-        "MaxTicketsPerUser",
-        String(payload.maxTicketsPerUser)
-      );
-    }
+    // MaxTicketsPerUser luôn set là 1
+    formDataApi.append("MaxTicketsPerUser", "1");
 
     if (payload.imageFile) {
       formDataApi.append("ImageFile", payload.imageFile);
@@ -291,7 +373,6 @@ if (payload.registrationEnd) {
       setTitleError("");
       setDateError("");
       setTimeError("");
-      setLocationError("");
       setRegistrationStartError("");
       setRegistrationEndError("");
 
@@ -303,7 +384,6 @@ if (payload.registrationEnd) {
         date: formData.get("date") as string,
         startTime: formData.get("startTime") as string,
         endTime: formData.get("endTime") as string,
-        location: (formData.get("location") as string)?.trim() || undefined,
         hallId: selectedHallId || undefined,
         // clubName: (formData.get("clubName") as string) || undefined,
         registrationStart:
@@ -315,9 +395,7 @@ if (payload.registrationEnd) {
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-        maxTicketsPerUser: formData.get("maxTicketsPerUser")
-          ? Number(formData.get("maxTicketsPerUser"))
-          : undefined,
+        maxTicketsPerUser: 1, // Luôn set là 1
         imageFile,
         speakerIds: selectedSpeakerIds,
       };
@@ -337,13 +415,21 @@ if (payload.registrationEnd) {
         setDateError("Ngày sự kiện là bắt buộc");
         hasError = true;
       } else {
-        // Validate date không được ở quá khứ
+        // Validate date không được ở quá khứ và phải cách ít nhất 3 ngày
         const eventDate = new Date(payload.date);
+        eventDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
         if (eventDate < today) {
           setDateError("Ngày sự kiện không được ở quá khứ");
           hasError = true;
+        } else {
+          const daysDiff = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff < 3) {
+            setDateError("Ngày diễn ra phải cách ngày hiện tại ít nhất 3 ngày");
+            hasError = true;
+          }
         }
       }
 
@@ -366,45 +452,73 @@ if (payload.registrationEnd) {
         }
       }
 
-      // Validate location hoặc hallId phải có ít nhất một
-      if (!payload.location && !payload.hallId) {
-        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm");
+      // Validate hallId phải có (bắt buộc)
+      if (!payload.hallId) {
+        toast.error("Vui lòng chọn Hall");
         hasError = true;
       }
 
-      // Validate registration dates
+      /**
+       * VALIDATE NGÀY ĐĂNG KÝ VÀ NGÀY KẾT THÚC ĐĂNG KÝ
+       * 
+       * Rules:
+       * 1. Không được chọn ngày/giờ trong quá khứ
+       * 2. Ngày đăng ký phải trước ngày diễn ra sự kiện
+       * 3. Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký (không được trùng)
+       * 4. Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+       */
+      const now = new Date();
+      now.setSeconds(0, 0); // Set seconds và milliseconds về 0 để so sánh chính xác
+
       if (payload.registrationStart) {
         const regStartDate = new Date(payload.registrationStart);
-        const evtDate = new Date(payload.date);
-        evtDate.setHours(0, 0, 0, 0);
-        regStartDate.setHours(0, 0, 0, 0);
-        if (regStartDate >= evtDate) {
-          setRegistrationStartError(
-            "Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện"
-          );
+        
+        // Rule 1: Không được chọn ngày/giờ trong quá khứ
+        if (regStartDate < now) {
+          setRegistrationStartError("Không được chọn ngày/giờ trong quá khứ");
           hasError = true;
+        } else {
+          // Rule 2: Ngày đăng ký phải trước ngày diễn ra sự kiện
+          const evtDate = new Date(payload.date);
+          evtDate.setHours(0, 0, 0, 0);
+          const regStartDateOnly = new Date(regStartDate);
+          regStartDateOnly.setHours(0, 0, 0, 0);
+          
+          if (regStartDateOnly >= evtDate) {
+            setRegistrationStartError("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện");
+            hasError = true;
+          }
         }
       }
-
+      
       if (payload.registrationEnd) {
         const regEndDate = new Date(payload.registrationEnd);
-        const evtDate = new Date(payload.date);
-        evtDate.setHours(0, 0, 0, 0);
-        regEndDate.setHours(0, 0, 0, 0);
-        if (regEndDate >= evtDate) {
-          setRegistrationEndError(
-            "Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện"
-          );
+        
+        // Rule 1: Không được chọn ngày/giờ trong quá khứ
+        if (regEndDate < now) {
+          setRegistrationEndError("Không được chọn ngày/giờ trong quá khứ");
           hasError = true;
-        }
-
-        // Validate registrationEnd >= registrationStart
-        if (payload.registrationStart) {
-          const regStartDate = new Date(payload.registrationStart);
-          if (regEndDate < regStartDate) {
-            setRegistrationEndError(
-              "Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký"
-            );
+        } else {
+          // Rule 3: Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+          // Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng
+          if (payload.registrationStart) {
+            const regStartDate = new Date(payload.registrationStart);
+            const hoursDiff = (regEndDate.getTime() - regStartDate.getTime()) / (1000 * 60 * 60);
+            
+            if (hoursDiff < 2) {
+              setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng");
+              hasError = true;
+            }
+          }
+          
+          // Rule 4: Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+          const evtDate = new Date(payload.date);
+          evtDate.setHours(0, 0, 0, 0);
+          const regEndDateOnly = new Date(regEndDate);
+          regEndDateOnly.setHours(0, 0, 0, 0);
+          
+          if (regEndDateOnly >= evtDate) {
+            setRegistrationEndError("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện");
             hasError = true;
           }
         }
@@ -552,7 +666,7 @@ if (payload.registrationEnd) {
                   Thông tin chính
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
-                  Tiêu đề, mô tả, thời gian và địa điểm
+                  Tiêu đề, mô tả, thời gian và hall
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-5 p-6">
@@ -616,7 +730,7 @@ if (payload.registrationEnd) {
                     name="date"
                     type="date"
                     required
-                    min={today}
+                    min={minEventDateStr}
                     className={`h-11 border-2 focus:border-primary transition-colors ${
                       dateError ? "border-destructive" : ""
                     }`}
@@ -624,14 +738,22 @@ if (payload.registrationEnd) {
                       const selectedDate = e.target.value;
                       if (selectedDate) {
                         const eventDate = new Date(selectedDate);
+                        eventDate.setHours(0, 0, 0, 0);
+                        
                         const todayDate = new Date();
                         todayDate.setHours(0, 0, 0, 0);
+                        
+                        // Rule 1: Không được chọn ngày trong quá khứ
                         if (eventDate < todayDate) {
-                          setDateError(
-                            "Ngày không được chọn ngày trong quá khứ"
-                          );
+                          setDateError("Ngày không được chọn ngày trong quá khứ");
                         } else {
-                          setDateError("");
+                          // Rule 2: Ngày diễn ra phải cách ngày hiện tại ít nhất 3 ngày
+                          const daysDiff = Math.floor((eventDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+                          if (daysDiff < 3) {
+                            setDateError("Ngày diễn ra phải cách ngày hiện tại ít nhất 3 ngày");
+                          } else {
+                            setDateError("");
+                          }
                         }
 
                         // Re-validate registration dates when event date changes
@@ -732,44 +854,43 @@ if (payload.registrationEnd) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="location"
-                    className="text-sm font-semibold flex items-center gap-2"
-                  >
+                  <Label htmlFor="hallId" className="text-sm font-semibold flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    Địa điểm{" "}
-                    {!selectedHallId && (
-                      <span className="text-destructive">*</span>
-                    )}
+                    Hall{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    placeholder="Hall A, FPTU HCMC"
-                    className={`h-11 border-2 focus:border-primary transition-colors ${
-                      locationError ? "border-destructive" : ""
-                    }`}
-                    onChange={(e) => {
-                      const value = e.target.value.trim();
-                      if (!selectedHallId && (!value || value.length === 0)) {
-                        setLocationError(
-                          "Vui lòng chọn Hall hoặc nhập Địa điểm"
-                        );
-                      } else {
-                        setLocationError("");
-                      }
-                    }}
-                  />
-                  {locationError && (
+                  {isHallsLoading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : halls.length > 0 ? (
+                    <Select
+                      value={selectedHallId ?? undefined}
+                      onValueChange={(value) => {
+                        if (value === "__none") {
+                          setSelectedHallId(undefined);
+                        } else {
+                          setSelectedHallId(value as string);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="hallId" className="h-11 border-2 focus:border-primary transition-colors">
+                        <SelectValue placeholder="Chọn hall" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {halls.map((hall) => (
+                          <SelectItem key={hall.hallId} value={hall.hallId}>
+                            {hall.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <span>⚠</span>
-                      {locationError}
+                      Không tải được hall. Vui lòng thử lại.
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Nếu chọn Hall phía dưới, Location có thể để trống.
-                  </p>
                 </div>
+
               </CardContent>
             </Card>
 
@@ -790,11 +911,27 @@ if (payload.registrationEnd) {
                     id="registrationStart"
                     name="registrationStart"
                     type="datetime-local"
+                    min={minDateTimeLocal}
                     className={
                       registrationStartError ? "border-destructive" : ""
                     }
                     onChange={(e) => {
                       validateRegistrationDate(e.target.value, "start");
+                      // Update min của registrationEnd khi registrationStart thay đổi
+                      // Min = registrationStart + 2 tiếng (cho phép trùng ngày nhưng phải cách ít nhất 2 tiếng)
+                      const regEndInput = document.getElementById("registrationEnd") as HTMLInputElement;
+                      if (regEndInput && e.target.value) {
+                        const regStartDate = new Date(e.target.value);
+                        regStartDate.setHours(regStartDate.getHours() + 2); // Thêm 2 tiếng
+                        
+                        // Format thành datetime-local format (YYYY-MM-DDTHH:mm)
+                        const year = regStartDate.getFullYear();
+                        const month = String(regStartDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(regStartDate.getDate()).padStart(2, '0');
+                        const hours = String(regStartDate.getHours()).padStart(2, '0');
+                        const minutes = String(regStartDate.getMinutes()).padStart(2, '0');
+                        regEndInput.min = `${year}-${month}-${day}T${hours}:${minutes}`;
+                      }
                     }}
                   />
                   {registrationStartError && (
@@ -811,6 +948,7 @@ if (payload.registrationEnd) {
                     id="registrationEnd"
                     name="registrationEnd"
                     type="datetime-local"
+                    min={minDateTimeLocal}
                     className={registrationEndError ? "border-destructive" : ""}
                     onChange={(e) => {
                       validateRegistrationDate(e.target.value, "end");
@@ -824,16 +962,6 @@ if (payload.registrationEnd) {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="maxTicketsPerUser">MaxTicketsPerUser</Label>
-                  <Input
-                    id="maxTicketsPerUser"
-                    name="maxTicketsPerUser"
-                    type="number"
-                    min={1}
-                    placeholder="1"
-                  />
-                </div>
               </CardContent>
             </Card>
 
@@ -844,67 +972,10 @@ if (payload.registrationEnd) {
                   Thông tin bổ sung
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
-                  Hall, Tags, Speakers, Ảnh
+                  Tags, Speakers, Ảnh
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hallId">
-                    Hall{" "}
-                    {!locationError && (
-                      <span className="text-muted-foreground">(tuỳ chọn)</span>
-                    )}
-                  </Label>
-                  {isHallsLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : halls.length > 0 ? (
-                    <Select
-                      value={selectedHallId ?? undefined}
-                      onValueChange={(value) => {
-                        if (value === "__none") {
-                          setSelectedHallId(undefined);
-                        } else {
-                          setSelectedHallId(value as string);
-                        }
-                        // Clear location error if hall is selected
-                        if (value !== "__none") {
-                          setLocationError("");
-                        } else {
-                          // Re-validate location if hall is deselected
-                          const locationInput = document.getElementById(
-                            "location"
-                          ) as HTMLInputElement;
-                          if (
-                            locationInput &&
-                            (!locationInput.value ||
-                              locationInput.value.trim().length === 0)
-                          ) {
-                            setLocationError(
-                              "Vui lòng chọn Hall hoặc nhập Địa điểm"
-                            );
-                          }
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="hallId">
-                        <SelectValue placeholder="Chọn hall (hoặc bỏ trống)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none">Không chọn hall</SelectItem>
-                        {halls.map((hall) => (
-                          <SelectItem key={hall.hallId} value={hall.hallId}>
-                            {hall.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Không tải được hall. Bạn có thể nhập Location thủ công.
-                    </p>
-                  )}
-                </div>
-
                 {/* <div className="space-y-2">
                   <Label htmlFor="clubName">ClubName</Label>
                   <Input id="clubName" name="clubName" placeholder="FPTU Event Club" />
@@ -1068,7 +1139,7 @@ if (payload.registrationEnd) {
                   <p className="flex items-start gap-2">
                     <span className="text-primary font-semibold">•</span>
                     <span>
-                      Tags/SpeakerIds nhập danh sách, phân tách dấu phẩy.
+                      Tags/Speaker nhập và chọn danh sách, phân tách dấu phẩy.
                     </span>
                   </p>
                 </div>

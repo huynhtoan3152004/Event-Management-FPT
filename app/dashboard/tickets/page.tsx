@@ -7,11 +7,21 @@
 
 import { useState, useEffect, ReactElement } from "react"
 import Image from "next/image"
-import { QrCode, Calendar, MapPin, Download, Loader2, X } from "lucide-react"
+import { QrCode, Calendar, MapPin, Download, Loader2, X, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ticketService, TicketDto } from "@/lib/services/ticket.service"
 import { toast } from "react-toastify"
 import { eventService } from "@/lib/services/event.service"
@@ -25,6 +35,7 @@ export default function MyTicketsPage() {
   const [eventLocations, setEventLocations] = useState<Record<string, string>>({})
   const [eventImages, setEventImages] = useState<Record<string, string>>({})
   const [cancellingId, setCancellingId] = useState<string>("")
+  const [cancelConfirmTicket, setCancelConfirmTicket] = useState<TicketDto | null>(null)
 
   // Fetch tickets từ API
   const fetchTickets = async () => {
@@ -133,17 +144,43 @@ export default function MyTicketsPage() {
     return hoursUntilEvent >= 24
   }
 
-  const handleCancel = async (ticket: TicketDto) => {
+  /**
+   * HÀM MỞ MODAL XÁC NHẬN HỦY VÉ
+   * 
+   * Logic:
+   * 1. Kiểm tra điều kiện có thể hủy vé (canCancelTicket)
+   * 2. Nếu không thể hủy: Hiển thị toast warning
+   * 3. Nếu có thể hủy: Mở modal xác nhận
+   */
+  const handleCancelClick = (ticket: TicketDto) => {
     if (!canCancelTicket(ticket)) {
       toast.warning("Chỉ hủy vé trước giờ bắt đầu ít nhất 24 giờ")
       return
     }
+    setCancelConfirmTicket(ticket)
+  }
+
+  /**
+   * HÀM THỰC HIỆN HỦY VÉ SAU KHI XÁC NHẬN
+   * 
+   * API: POST /api/tickets/{ticketId}/cancel
+   * Service: ticketService.cancelTicket()
+   * 
+   * Dữ liệu cập nhật:
+   * - Bảng Tickets: status = "cancelled"
+   * - Bảng Events: registeredCount -= 1 (nếu cần)
+   * - Bảng Seats: status = "available" (nếu có ghế)
+   */
+  const handleCancelConfirm = async () => {
+    if (!cancelConfirmTicket) return
+
     try {
-      setCancellingId(ticket.ticketId)
-      const res = await ticketService.cancelTicket(ticket.ticketId)
+      setCancellingId(cancelConfirmTicket.ticketId)
+      const res = await ticketService.cancelTicket(cancelConfirmTicket.ticketId)
       if (res.success) {
         toast.success(res.message || "Hủy vé thành công")
         await fetchTickets()
+        setCancelConfirmTicket(null)
       } else {
         toast.error(res.message || "Không thể hủy vé")
       }
@@ -216,7 +253,7 @@ export default function MyTicketsPage() {
                     location={eventLocations[ticket.eventId] || "Chưa có địa điểm"}
                     eventImage={eventImages[ticket.eventId] || "/placeholder.svg"}
                     onShowQR={showQRCode}
-                    onCancel={handleCancel}
+                    onCancel={handleCancelClick}
                     canCancel={canCancelTicket(ticket)}
                     cancelling={cancellingId === ticket.ticketId}
                     getQRCodeUrl={getQRCodeUrl}
@@ -272,15 +309,47 @@ export default function MyTicketsPage() {
               >
                 Đóng
               </Button>
-              <Button asChild>
-                <a href={qrModalUrl} download={`ticket-${qrTicketCode}.png`} target="_blank" rel="noopener noreferrer">
-                  Tải QR
-                </a>
-              </Button>
+              
             </div>
           </div>
         </div>
       )}
+
+      {/* Cancel Confirmation Modal */}
+      <AlertDialog open={!!cancelConfirmTicket} onOpenChange={(open) => !open && setCancelConfirmTicket(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Xác nhận hủy vé
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Bạn có chắc chắn muốn hủy vé này không?
+              
+              <p className="mt-3 text-destructive font-medium">
+                Hành động này không thể hoàn tác.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              disabled={cancellingId !== ""}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancellingId ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang hủy...
+                </>
+              ) : (
+                "Xác nhận hủy"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

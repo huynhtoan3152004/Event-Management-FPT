@@ -63,6 +63,7 @@ export interface MonthlyReportParams {
 }
 
 export interface EventReportItem {
+  eventId?: string  // Thêm eventId để có thể gọi API chi tiết
   eventName: string
   eventDate: string
   totalRegistrations: number

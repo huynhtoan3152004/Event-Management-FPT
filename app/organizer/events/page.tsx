@@ -8,13 +8,17 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Plus, Search, Filter, Calendar, MapPin, Users, MoreVertical, Edit, Trash2, Eye, Loader2 } from "lucide-react"
+import { Plus, Search, Filter, Calendar, MapPin, Users, MoreVertical, Edit, Trash2, Eye, Loader2, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OrganizerHeader } from "@/components/organizer/header"
 import { eventService, EventListItem } from "@/lib/services/event.service"
 import { useUser } from "@/hooks/use-user"
@@ -26,6 +30,13 @@ export default function OrganizerEventsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null)
+  // Filter theo ngày
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  // State quản lý popover filter
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  // State sắp xếp theo ngày: "asc" (từ bé đến lớn), "desc" (từ lớn đến bé), "none" (không sắp xếp)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "none">("none")
   const { user } = useUser()
 
   // Helper function to check if event is currently ongoing
@@ -67,6 +78,8 @@ export default function OrganizerEventsPage() {
         pageNumber: 1,
         pageSize: 100, // Lấy nhiều để hiển thị tất cả
         status: activeTab === "all" || activeTab === "active" ? undefined : activeTab, // active sẽ filter sau
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       })
       
       if (response.success && response.data) {
@@ -105,7 +118,7 @@ export default function OrganizerEventsPage() {
 
   useEffect(() => {
     fetchEvents()
-  }, [user?.userId, activeTab])
+  }, [user?.userId, activeTab, dateFrom, dateTo])
 
   // Handle delete event
   const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
@@ -133,13 +146,46 @@ export default function OrganizerEventsPage() {
     }
   }
 
-  // Filter events theo search query
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    return matchesSearch
-  })
+  /**
+   * FILTER VÀ SẮP XẾP SỰ KIỆN
+   * 
+   * Logic:
+   * 1. Tìm kiếm: Kiểm tra title hoặc description có chứa searchQuery (case-insensitive)
+   * 2. Sắp xếp theo ngày:
+   *    - "asc": Từ bé đến lớn (sự kiện sớm nhất trước)
+   *    - "desc": Từ lớn đến bé (sự kiện muộn nhất trước)
+   *    - "": Không sắp xếp (giữ nguyên thứ tự từ API)
+   * 
+   * Dữ liệu từ:
+   * - events: Danh sách đã filter theo tab
+   * - searchQuery: Từ input tìm kiếm
+   * - sortOrder: "asc", "desc", hoặc ""
+   * - event.date: Ngày diễn ra sự kiện (từ Events.date)
+   */
+  const filteredEvents = (() => {
+    // Filter theo search
+    let result = events.filter((event) => {
+      const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      return matchesSearch
+    })
+
+    // Sắp xếp theo ngày nếu có sortOrder và không phải "none"
+    if (sortOrder && sortOrder !== "none") {
+      result = [...result].sort((a, b) => {
+        const dateA = new Date(`${a.date}T${a.startTime}`).getTime()
+        const dateB = new Date(`${b.date}T${b.startTime}`).getTime()
+        
+        if (sortOrder === "asc") {
+          return dateA - dateB // Từ bé đến lớn
+        } else {
+          return dateB - dateA // Từ lớn đến bé
+        }
+      })
+    }
+
+    return result
+  })()
 
   return (
     <>
@@ -168,9 +214,119 @@ export default function OrganizerEventsPage() {
                 className="pl-10 h-11 bg-background shadow-sm focus:shadow-md transition-shadow"
               />
             </div>
-            <Button variant="outline" className="h-11 shadow-sm hover:shadow-md transition-shadow">
-              <Filter className="h-4 w-4" />
-            </Button>
+            
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "asc" | "desc" | "none")}>
+                <SelectTrigger className="h-11 w-[180px] bg-background shadow-sm focus:shadow-md transition-shadow [&>svg]:h-4 [&>svg]:w-4">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Sắp xếp theo ngày" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không sắp xếp</SelectItem>
+                  <SelectItem value="asc">
+                    <div className="flex items-center">
+                      
+                      Từ ngày bé đến ngày lớn
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="desc">
+                    <div className="flex items-center">
+                     
+                      Từ ngày lớn đến ngày bé
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            {/* 
+              POPOVER BỘ LỌC THEO NGÀY
+              
+              Chức năng:
+              - Cho phép organizer chọn khoảng thời gian (dateFrom - dateTo)
+              - Filter sự kiện theo ngày diễn ra (Events.date)
+              - Có thể clear filter để xem tất cả
+              
+              API: GET /api/Events với query params dateFrom và dateTo
+              Backend filter: WHERE Events.date >= dateFrom AND Events.date <= dateTo
+            */}
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-11 shadow-sm hover:shadow-md transition-shadow">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Bộ lọc
+                  {(dateFrom || dateTo) && (
+                    <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                      {(dateFrom || dateTo) ? "1" : "0"}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm">Lọc theo ngày</h4>
+                    {(dateFrom || dateTo) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDateFrom("")
+                          setDateTo("")
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="dateFrom" className="text-xs">Từ ngày</Label>
+                      <Input
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dateTo" className="text-xs">Đến ngày</Label>
+                      <Input
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        min={dateFrom || undefined}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDateFrom("")
+                        setDateTo("")
+                        setIsFilterOpen(false)
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsFilterOpen(false)}
+                      className="h-8 text-xs"
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <Link href="/organizer/events/new">

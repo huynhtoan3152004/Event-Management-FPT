@@ -166,7 +166,7 @@ export default function ManageUserPage() {
        <div className="flex items-center justify-between">
          <div>
            <h1 className="text-2xl font-semibold">
-             Quản lý tài khoản theo role
+             Quản lý tài khoản 
            </h1>
 
          </div>

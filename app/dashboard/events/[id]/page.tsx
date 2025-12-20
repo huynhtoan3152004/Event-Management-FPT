@@ -1015,11 +1015,7 @@ export default function StudentEventDetailPage() {
             >
               Đóng
             </Button>
-            <Button asChild>
-              <a href={qrModalUrl} download={`ticket-${qrTicketCode}.png`} target="_blank" rel="noopener noreferrer">
-                Tải QR
-              </a>
-            </Button>
+            
           </div>
         </div>
       </div>
