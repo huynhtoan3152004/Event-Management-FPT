@@ -226,7 +226,7 @@
             const checkOutRecords: CheckInRecord[] = completedTickets.map(
               (t: any, idx: number) => ({
                 id: `${t.ticketCode}-${idx}`,
-                attendeeName: t.studentId,
+                attendeeName: t.studentName,
                 ticketCode: t.ticketCode,
                 // Không có thời gian check-out trong API nên hiển thị eventEndTime hoặc "--"
                 checkInTime:

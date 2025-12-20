@@ -898,7 +898,7 @@ if (payload.registrationEnd) {
               <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  Vé & Tag
+                  Vé 
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
                   Thiết lập đăng ký và tag (không cần nhập số ghế)
