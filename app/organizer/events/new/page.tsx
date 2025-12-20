@@ -45,187 +45,217 @@ type Speaker = {
 }
 
 export default function CreateEventPage() {
-  const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [halls, setHalls] = useState<Hall[]>([])
-  const [isHallsLoading, setIsHallsLoading] = useState(false)
-  const [selectedHallId, setSelectedHallId] = useState<string | undefined>(undefined)
-  const [speakers, setSpeakers] = useState<Speaker[]>([])
-  const [isSpeakersLoading, setIsSpeakersLoading] = useState(false)
-  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([])
-  
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [isHallsLoading, setIsHallsLoading] = useState(false);
+  const [selectedHallId, setSelectedHallId] = useState<string | undefined>(
+    undefined
+  );
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [isSpeakersLoading, setIsSpeakersLoading] = useState(false);
+  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
+
   // Validation states
-  const [dateError, setDateError] = useState<string>("")
-  const [timeError, setTimeError] = useState<string>("")
-  const [registrationStartError, setRegistrationStartError] = useState<string>("")
-  const [registrationEndError, setRegistrationEndError] = useState<string>("")
-  const [titleError, setTitleError] = useState<string>("")
-  const [locationError, setLocationError] = useState<string>("")
-  
+  const [dateError, setDateError] = useState<string>("");
+  const [timeError, setTimeError] = useState<string>("");
+  const [registrationStartError, setRegistrationStartError] =
+    useState<string>("");
+  const [registrationEndError, setRegistrationEndError] = useState<string>("");
+  const [titleError, setTitleError] = useState<string>("");
+  const [locationError, setLocationError] = useState<string>("");
+
   // Get today's date in YYYY-MM-DD format for min attribute
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split("T")[0];
 
   // Validate time range
   const validateTimeRange = (startTime: string, endTime: string) => {
     if (!startTime || !endTime) {
-      setTimeError("")
-      return
+      setTimeError("");
+      return;
     }
-    
-    const startTimeParts = startTime.split(':').map(Number)
-    const endTimeParts = endTime.split(':').map(Number)
-    const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
-    const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
-    
+
+    const startTimeParts = startTime.split(":").map(Number);
+    const endTimeParts = endTime.split(":").map(Number);
+    const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0);
+    const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0);
+
     if (endMinutes <= startMinutes) {
-      setTimeError("Giờ kết thúc phải sau giờ bắt đầu")
+      setTimeError("Giờ kết thúc phải sau giờ bắt đầu");
     } else {
-      setTimeError("")
+      setTimeError("");
     }
-  }
+  };
 
   // Validate registration dates must be after event date
-  const validateRegistrationDate = (registrationDate: string, field: 'start' | 'end') => {
+  const validateRegistrationDate = (
+    registrationDate: string,
+    field: "start" | "end"
+  ) => {
     if (!registrationDate) {
-      if (field === 'start') {
-        setRegistrationStartError("")
+      if (field === "start") {
+        setRegistrationStartError("");
       } else {
-        setRegistrationEndError("")
+        setRegistrationEndError("");
       }
-      return
+      return;
     }
 
-    const dateInput = document.getElementById('date') as HTMLInputElement
-    const eventDate = dateInput?.value
+    const dateInput = document.getElementById("date") as HTMLInputElement;
+    const eventDate = dateInput?.value;
 
     if (!eventDate) {
-      if (field === 'start') {
-        setRegistrationStartError("")
+      if (field === "start") {
+        setRegistrationStartError("");
       } else {
-        setRegistrationEndError("")
+        setRegistrationEndError("");
       }
-      return
+      return;
     }
 
-    const regDate = new Date(registrationDate)
-    const evtDate = new Date(eventDate)
-    evtDate.setHours(0, 0, 0, 0)
-    
+    const regDate = new Date(registrationDate);
+    const evtDate = new Date(eventDate);
+    evtDate.setHours(0, 0, 0, 0);
+
     // Set registration date to start of day for fair comparison
-    const regDateOnly = new Date(regDate)
-    regDateOnly.setHours(0, 0, 0, 0)
+    const regDateOnly = new Date(regDate);
+    regDateOnly.setHours(0, 0, 0, 0);
 
     // Registration date must be BEFORE event date (so people can register before the event)
     if (regDateOnly >= evtDate) {
-      const errorMsg = "Ngày đăng ký phải trước ngày diễn ra sự kiện"
-      if (field === 'start') {
-        setRegistrationStartError(errorMsg)
+      const errorMsg = "Ngày đăng ký phải trước ngày diễn ra sự kiện";
+      if (field === "start") {
+        setRegistrationStartError(errorMsg);
       } else {
-        setRegistrationEndError(errorMsg)
+        setRegistrationEndError(errorMsg);
       }
     } else {
-      if (field === 'start') {
-        setRegistrationStartError("")
+      if (field === "start") {
+        setRegistrationStartError("");
       } else {
-        setRegistrationEndError("")
+        setRegistrationEndError("");
       }
     }
-  }
+  };
 
   useEffect(() => {
     const fetchHalls = async () => {
       try {
-        setIsHallsLoading(true)
-        const res = await apiClient.get<{ success: boolean; data: Hall[] }>("/api/Halls")
+        setIsHallsLoading(true);
+        const res = await apiClient.get<{ success: boolean; data: Hall[] }>(
+          "/api/Halls"
+        );
         if (Array.isArray(res.data?.data)) {
-          setHalls(res.data.data)
+          setHalls(res.data.data);
         }
       } catch (error) {
-        toast.error("Không tải được danh sách hall, hãy thử lại hoặc nhập Location thủ công.")
+        toast.error(
+          "Không tải được danh sách hall, hãy thử lại hoặc nhập Location thủ công."
+        );
       } finally {
-        setIsHallsLoading(false)
+        setIsHallsLoading(false);
       }
-    }
-    fetchHalls()
-  }, [])
+    };
+    fetchHalls();
+  }, []);
 
   useEffect(() => {
     const fetchSpeakers = async () => {
       try {
-        setIsSpeakersLoading(true)
-        const res = await apiClient.get<{ success: boolean; data: Speaker[] }>("/api/Speakers")
+        setIsSpeakersLoading(true);
+        const res = await apiClient.get<{ success: boolean; data: Speaker[] }>(
+          "/api/Speakers"
+        );
         if (Array.isArray(res.data?.data)) {
-          setSpeakers(res.data.data)
+          setSpeakers(res.data.data);
         }
       } catch (error) {
-        toast.error("Không tải được danh sách speaker, bạn có thể nhập thủ công ở backend.")
+        toast.error(
+          "Không tải được danh sách speaker, bạn có thể nhập thủ công ở backend."
+        );
       } finally {
-        setIsSpeakersLoading(false)
+        setIsSpeakersLoading(false);
       }
-    }
-    fetchSpeakers()
-  }, [])
+    };
+    fetchSpeakers();
+  }, []);
+  // Convert datetime-local -> ISO string có timezone (+07:00)
+  const toLocalISOStringWithOffset = (local: string) => {
+    // local: "2025-01-20T08:00"
+    const d = new Date(local);
+
+    const offsetMinutes = -d.getTimezoneOffset(); // phút
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const pad = (n: number) => String(Math.abs(n)).padStart(2, "0");
+
+    const hours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+    const minutes = pad(Math.abs(offsetMinutes) % 60);
+
+    return d.toISOString().replace("Z", `${sign}${hours}:${minutes}`);
+  };
 
   const postEvent = async (payload: {
-    title: string
-    description?: string
-    date: string
-    startTime: string
-    endTime: string
-    location?: string
-    hallId?: string
+    title: string;
+    description?: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    hallId?: string;
     // clubName?: string
-    registrationStart?: string
-    registrationEnd?: string
-    tags?: string | string[]
-    maxTicketsPerUser?: number
-    imageFile?: File | null
-    speakerIds?: string[]
+    registrationStart?: string;
+    registrationEnd?: string;
+    tags?: string | string[];
+    maxTicketsPerUser?: number;
+    imageFile?: File | null;
+    speakerIds?: string[];
   }) => {
-    const formDataApi = new FormData()
+    const formDataApi = new FormData();
 
-    formDataApi.append("Title", payload.title)
-    formDataApi.append("Date", payload.date)
+    formDataApi.append("Title", payload.title);
+    formDataApi.append("Date", payload.date);
 
     const startTimeFormatted =
-      payload.startTime.includes(":") && payload.startTime.split(":").length === 2
+      payload.startTime.includes(":") &&
+      payload.startTime.split(":").length === 2
         ? `${payload.startTime}:00`
-        : payload.startTime
+        : payload.startTime;
     const endTimeFormatted =
       payload.endTime.includes(":") && payload.endTime.split(":").length === 2
         ? `${payload.endTime}:00`
-        : payload.endTime
+        : payload.endTime;
 
-    formDataApi.append("StartTime", startTimeFormatted)
-    formDataApi.append("EndTime", endTimeFormatted)
+    formDataApi.append("StartTime", startTimeFormatted);
+    formDataApi.append("EndTime", endTimeFormatted);
 
-    if (payload.description?.trim()) formDataApi.append("Description", payload.description)
-    if (payload.location?.trim()) formDataApi.append("Location", payload.location)
+    if (payload.description?.trim())
+      formDataApi.append("Description", payload.description);
+    if (payload.location?.trim())
+      formDataApi.append("Location", payload.location);
     // HallId optional; append only when provided
     if (payload.hallId?.trim()) {
-      formDataApi.append("HallId", payload.hallId)
+      formDataApi.append("HallId", payload.hallId);
     }
     // if (payload.clubName?.trim()) formDataApi.append("ClubName", payload.clubName)
+if (payload.registrationStart) {
+  formDataApi.append(
+    "RegistrationStart",
+    toLocalISOStringWithOffset(payload.registrationStart)
+  );
+}
 
-    if (payload.registrationStart) {
-      let regStart = payload.registrationStart
-      if (regStart.includes("T") && !regStart.includes("Z") && !regStart.includes("+")) {
-        if (regStart.split(":").length === 2) regStart = `${regStart}:00`
-      }
-      formDataApi.append("RegistrationStart", regStart)
-    }
-    if (payload.registrationEnd) {
-      let regEnd = payload.registrationEnd
-      if (regEnd.includes("T") && !regEnd.includes("Z") && !regEnd.includes("+")) {
-        if (regEnd.split(":").length === 2) regEnd = `${regEnd}:00`
-      }
-      formDataApi.append("RegistrationEnd", regEnd)
-    }
-
+if (payload.registrationEnd) {
+  formDataApi.append(
+    "RegistrationEnd",
+    toLocalISOStringWithOffset(payload.registrationEnd)
+  );
+}
     if (payload.tags) {
-      const tagsValue = Array.isArray(payload.tags) ? payload.tags.join(",") : payload.tags
-      if (tagsValue.trim()) formDataApi.append("Tags", tagsValue)
+      const tagsValue = Array.isArray(payload.tags)
+        ? payload.tags.join(",")
+        : payload.tags;
+      if (tagsValue.trim()) formDataApi.append("Tags", tagsValue);
     }
 
     if (
@@ -233,48 +263,53 @@ export default function CreateEventPage() {
       payload.maxTicketsPerUser >= 1 &&
       payload.maxTicketsPerUser <= 10
     ) {
-      formDataApi.append("MaxTicketsPerUser", String(payload.maxTicketsPerUser))
+      formDataApi.append(
+        "MaxTicketsPerUser",
+        String(payload.maxTicketsPerUser)
+      );
     }
 
-
     if (payload.imageFile) {
-      formDataApi.append("ImageFile", payload.imageFile)
+      formDataApi.append("ImageFile", payload.imageFile);
     }
 
     if (payload.speakerIds && payload.speakerIds.length > 0) {
-      payload.speakerIds.forEach((id) => formDataApi.append("SpeakerIds", id))
+      payload.speakerIds.forEach((id) => formDataApi.append("SpeakerIds", id));
     }
 
     const response = await apiClient.post("/api/Events", formDataApi, {
       timeout: 120000,
-    })
-    return response.data
-  }
+    });
+    return response.data;
+  };
 
   const handleSubmit = async (formData: FormData) => {
     try {
-      setIsSubmitting(true)
+      setIsSubmitting(true);
 
       // Reset validation errors
-      setTitleError("")
-      setDateError("")
-      setTimeError("")
-      setLocationError("")
-      setRegistrationStartError("")
-      setRegistrationEndError("")
+      setTitleError("");
+      setDateError("");
+      setTimeError("");
+      setLocationError("");
+      setRegistrationStartError("");
+      setRegistrationEndError("");
 
       // Extract values
       const payload = {
         title: (formData.get("title") as string)?.trim() || "",
-        description: (formData.get("description") as string)?.trim() || undefined,
+        description:
+          (formData.get("description") as string)?.trim() || undefined,
         date: formData.get("date") as string,
         startTime: formData.get("startTime") as string,
         endTime: formData.get("endTime") as string,
         location: (formData.get("location") as string)?.trim() || undefined,
         hallId: selectedHallId || undefined,
         // clubName: (formData.get("clubName") as string) || undefined,
-        registrationStart: (formData.get("registrationStart") as string) || undefined,
-        registrationEnd: (formData.get("registrationEnd") as string) || undefined,
+        registrationStart:
+          (formData.get("registrationStart") as string) || undefined,
+        registrationEnd:
+          (formData.get("registrationEnd") as string) || undefined,
         tags:
           (formData.get("tags") as string)
             ?.split(",")
@@ -285,151 +320,163 @@ export default function CreateEventPage() {
           : undefined,
         imageFile,
         speakerIds: selectedSpeakerIds,
-      }
+      };
 
       // Validate required fields
-      let hasError = false
+      let hasError = false;
 
       if (!payload.title || payload.title.trim().length === 0) {
-        setTitleError("Tiêu đề là bắt buộc")
-        hasError = true
+        setTitleError("Tiêu đề là bắt buộc");
+        hasError = true;
       } else if (payload.title.trim().length < 3) {
-        setTitleError("Tiêu đề phải có ít nhất 3 ký tự")
-        hasError = true
+        setTitleError("Tiêu đề phải có ít nhất 3 ký tự");
+        hasError = true;
       }
 
       if (!payload.date) {
-        setDateError("Ngày sự kiện là bắt buộc")
-        hasError = true
+        setDateError("Ngày sự kiện là bắt buộc");
+        hasError = true;
       } else {
         // Validate date không được ở quá khứ
-        const eventDate = new Date(payload.date)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        const eventDate = new Date(payload.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         if (eventDate < today) {
-          setDateError("Ngày sự kiện không được ở quá khứ")
-          hasError = true
+          setDateError("Ngày sự kiện không được ở quá khứ");
+          hasError = true;
         }
       }
 
       if (!payload.startTime) {
-        setTimeError("Giờ bắt đầu là bắt buộc")
-        hasError = true
+        setTimeError("Giờ bắt đầu là bắt buộc");
+        hasError = true;
       } else if (!payload.endTime) {
-        setTimeError("Giờ kết thúc là bắt buộc")
-        hasError = true
+        setTimeError("Giờ kết thúc là bắt buộc");
+        hasError = true;
       } else {
         // Validate EndTime > StartTime
-        const startTimeParts = payload.startTime.split(':').map(Number)
-        const endTimeParts = payload.endTime.split(':').map(Number)
-        const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0)
-        const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0)
-        
+        const startTimeParts = payload.startTime.split(":").map(Number);
+        const endTimeParts = payload.endTime.split(":").map(Number);
+        const startMinutes = startTimeParts[0] * 60 + (startTimeParts[1] || 0);
+        const endMinutes = endTimeParts[0] * 60 + (endTimeParts[1] || 0);
+
         if (endMinutes <= startMinutes) {
-          setTimeError("Giờ kết thúc phải sau giờ bắt đầu")
-          hasError = true
+          setTimeError("Giờ kết thúc phải sau giờ bắt đầu");
+          hasError = true;
         }
       }
 
       // Validate location hoặc hallId phải có ít nhất một
       if (!payload.location && !payload.hallId) {
-        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
-        hasError = true
+        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm");
+        hasError = true;
       }
 
       // Validate registration dates
       if (payload.registrationStart) {
-        const regStartDate = new Date(payload.registrationStart)
-        const evtDate = new Date(payload.date)
-        evtDate.setHours(0, 0, 0, 0)
-        regStartDate.setHours(0, 0, 0, 0)
+        const regStartDate = new Date(payload.registrationStart);
+        const evtDate = new Date(payload.date);
+        evtDate.setHours(0, 0, 0, 0);
+        regStartDate.setHours(0, 0, 0, 0);
         if (regStartDate >= evtDate) {
-          setRegistrationStartError("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
-          hasError = true
+          setRegistrationStartError(
+            "Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện"
+          );
+          hasError = true;
         }
       }
 
       if (payload.registrationEnd) {
-        const regEndDate = new Date(payload.registrationEnd)
-        const evtDate = new Date(payload.date)
-        evtDate.setHours(0, 0, 0, 0)
-        regEndDate.setHours(0, 0, 0, 0)
+        const regEndDate = new Date(payload.registrationEnd);
+        const evtDate = new Date(payload.date);
+        evtDate.setHours(0, 0, 0, 0);
+        regEndDate.setHours(0, 0, 0, 0);
         if (regEndDate >= evtDate) {
-          setRegistrationEndError("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
-          hasError = true
+          setRegistrationEndError(
+            "Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện"
+          );
+          hasError = true;
         }
-        
+
         // Validate registrationEnd >= registrationStart
         if (payload.registrationStart) {
-          const regStartDate = new Date(payload.registrationStart)
+          const regStartDate = new Date(payload.registrationStart);
           if (regEndDate < regStartDate) {
-            setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký")
-            hasError = true
+            setRegistrationEndError(
+              "Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký"
+            );
+            hasError = true;
           }
         }
       }
 
       if (hasError) {
-        toast.error("Vui lòng kiểm tra và điền đủ thông tin cần thiết")
-        setIsSubmitting(false)
-        return
+        toast.error("Vui lòng kiểm tra và điền đủ thông tin cần thiết");
+        setIsSubmitting(false);
+        return;
       }
 
+      const response = await postEvent(payload);
+      console.log("Event created response:", response);
+      console.log(
+        "Event status:",
+        response?.data?.status || response?.status || "unknown"
+      );
 
-      const response = await postEvent(payload)
-      console.log("Event created response:", response)
-      console.log("Event status:", response?.data?.status || response?.status || "unknown")
-      
-      toast.success("Tạo sự kiện thành công!")
-      router.push("/organizer/events")
+      toast.success("Tạo sự kiện thành công!");
+      router.push("/organizer/events");
     } catch (error: any) {
       // Xử lý lỗi chi tiết hơn
-      let message = "Tạo sự kiện thất bại. Vui lòng kiểm tra lại dữ liệu."
-      
+      let message = "Tạo sự kiện thất bại. Vui lòng kiểm tra lại dữ liệu.";
+
       // Kiểm tra xem có response từ server không (nếu có thì không phải CORS)
       if (error?.response) {
         // Có response từ server - đây là lỗi từ server, không phải CORS
-        const status = error.response.status
-        const data = error.response.data
-        
+        const status = error.response.status;
+        const data = error.response.data;
+
         if (data) {
           // Có data trong response - kiểm tra nhiều format khác nhau
-          if (typeof data === 'string') {
+          if (typeof data === "string") {
             // Response là string trực tiếp
-            message = data
+            message = data;
           } else if (data.message) {
             // Response có format { message: ... }
-            message = data.message
+            message = data.message;
           } else if (data.error) {
             // Response có format { error: ... }
-            message = data.error
+            message = data.error;
           } else if (Array.isArray(data) && data.length > 0) {
             // Response là array of errors
-            message = data.join(', ')
+            message = data.join(", ");
           } else if (data.errors && Array.isArray(data.errors)) {
             // Validation errors format
-            message = data.errors.join(', ')
+            message = data.errors.join(", ");
           } else {
             // Có data nhưng không parse được - log để debug
-            message = JSON.stringify(data) || `Lỗi server (${status}). Vui lòng thử lại sau.`
+            message =
+              JSON.stringify(data) ||
+              `Lỗi server (${status}). Vui lòng thử lại sau.`;
           }
         } else {
           // Response nhưng không có body - có thể là exception không được handle ở backend
-          message = `Lỗi server (${status}). Có thể do dữ liệu không hợp lệ hoặc lỗi xử lý ở backend. Vui lòng kiểm tra lại dữ liệu.`
+          message = `Lỗi server (${status}). Có thể do dữ liệu không hợp lệ hoặc lỗi xử lý ở backend. Vui lòng kiểm tra lại dữ liệu.`;
         }
       } else if (error?.request) {
         // Request được gửi nhưng không nhận được response - có thể là CORS hoặc network
-        if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-          message = "Lỗi kết nối: Backend không phản hồi hoặc bị chặn bởi CORS. Vui lòng kiểm tra cấu hình server."
+        if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
+          message =
+            "Lỗi kết nối: Backend không phản hồi hoặc bị chặn bởi CORS. Vui lòng kiểm tra cấu hình server.";
         } else {
-          message = "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+          message =
+            "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.";
         }
       } else if (error?.message) {
-        message = error.message
+        message = error.message;
       }
-      
+
       // Log chi tiết để debug
-      console.error('❌ Error creating event:', {
+      console.error("❌ Error creating event:", {
         hasResponse: !!error?.response,
         status: error?.response?.status,
         statusText: error?.response?.statusText,
@@ -437,42 +484,42 @@ export default function CreateEventPage() {
         errorMessage: error?.message,
         errorCode: error?.code,
         fullError: error,
-      })
-      
+      });
+
       // Log chi tiết response từ server
       if (error?.response) {
-        console.error('📥 Server Response:', {
+        console.error("📥 Server Response:", {
           status: error.response.status,
           statusText: error.response.statusText,
           headers: error.response.headers,
           data: error.response.data,
           dataType: typeof error.response.data,
           dataStringified: JSON.stringify(error.response.data, null, 2),
-        })
+        });
       }
-      
+
       // Log request details để debug
       if (error?.config) {
-        console.error('📤 Request Details:', {
+        console.error("📤 Request Details:", {
           url: error.config.url,
           method: error.config.method,
           data: error.config.data,
-        })
+        });
       }
       toast.error(message, {
-        position: 'top-right',
+        position: "top-right",
         autoClose: 6000,
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const form = new FormData(e.currentTarget)
-    handleSubmit(form)
-  }
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    handleSubmit(form);
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-8">
@@ -490,7 +537,8 @@ export default function CreateEventPage() {
             Tạo sự kiện mới
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
-            Điền thông tin chi tiết sự kiện. Hệ thống sẽ tự động cấu hình chỗ ngồi theo hall.
+            Điền thông tin chi tiết sự kiện. Hệ thống sẽ tự động cấu hình chỗ
+            ngồi theo hall.
           </p>
         </div>
 
@@ -503,25 +551,31 @@ export default function CreateEventPage() {
                   <Calendar className="h-5 w-5 text-primary" />
                   Thông tin chính
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Tiêu đề, mô tả, thời gian và địa điểm</CardDescription>
+                <CardDescription className="text-sm mt-1">
+                  Tiêu đề, mô tả, thời gian và địa điểm
+                </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-5 p-6">
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="title" className="text-sm font-semibold">Tiêu đề *</Label>
-                  <Input 
-                    id="title" 
-                    name="title" 
-                    placeholder="FPTU Tech Summit 2025" 
-                    required 
-                    className={`h-11 border-2 focus:border-primary transition-colors ${titleError ? 'border-destructive' : ''}`}
+                  <Label htmlFor="title" className="text-sm font-semibold">
+                    Tiêu đề *
+                  </Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    placeholder="FPTU Tech Summit 2025"
+                    required
+                    className={`h-11 border-2 focus:border-primary transition-colors ${
+                      titleError ? "border-destructive" : ""
+                    }`}
                     onChange={(e) => {
-                      const value = e.target.value.trim()
+                      const value = e.target.value.trim();
                       if (!value || value.length === 0) {
-                        setTitleError("Tiêu đề là bắt buộc")
+                        setTitleError("Tiêu đề là bắt buộc");
                       } else if (value.length < 3) {
-                        setTitleError("Tiêu đề phải có ít nhất 3 ký tự")
+                        setTitleError("Tiêu đề phải có ít nhất 3 ký tự");
                       } else {
-                        setTitleError("")
+                        setTitleError("");
                       }
                     }}
                   />
@@ -534,7 +588,12 @@ export default function CreateEventPage() {
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="description" className="text-sm font-semibold">Mô tả</Label>
+                  <Label
+                    htmlFor="description"
+                    className="text-sm font-semibold"
+                  >
+                    Mô tả
+                  </Label>
                   <Textarea
                     id="description"
                     name="description"
@@ -545,40 +604,54 @@ export default function CreateEventPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-semibold flex items-center gap-2">
+                  <Label
+                    htmlFor="date"
+                    className="text-sm font-semibold flex items-center gap-2"
+                  >
                     <Calendar className="h-4 w-4 text-primary" />
                     Ngày *
                   </Label>
-                  <Input 
-                    id="date" 
-                    name="date" 
-                    type="date" 
-                    required 
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    required
                     min={today}
-                    className={`h-11 border-2 focus:border-primary transition-colors ${dateError ? 'border-destructive' : ''}`}
+                    className={`h-11 border-2 focus:border-primary transition-colors ${
+                      dateError ? "border-destructive" : ""
+                    }`}
                     onChange={(e) => {
-                      const selectedDate = e.target.value
+                      const selectedDate = e.target.value;
                       if (selectedDate) {
-                        const eventDate = new Date(selectedDate)
-                        const todayDate = new Date()
-                        todayDate.setHours(0, 0, 0, 0)
+                        const eventDate = new Date(selectedDate);
+                        const todayDate = new Date();
+                        todayDate.setHours(0, 0, 0, 0);
                         if (eventDate < todayDate) {
-                          setDateError("Ngày không được chọn ngày trong quá khứ")
+                          setDateError(
+                            "Ngày không được chọn ngày trong quá khứ"
+                          );
                         } else {
-                          setDateError("")
+                          setDateError("");
                         }
-                        
+
                         // Re-validate registration dates when event date changes
-                        const regStartInput = document.getElementById('registrationStart') as HTMLInputElement
-                        const regEndInput = document.getElementById('registrationEnd') as HTMLInputElement
+                        const regStartInput = document.getElementById(
+                          "registrationStart"
+                        ) as HTMLInputElement;
+                        const regEndInput = document.getElementById(
+                          "registrationEnd"
+                        ) as HTMLInputElement;
                         if (regStartInput?.value) {
-                          validateRegistrationDate(regStartInput.value, 'start')
+                          validateRegistrationDate(
+                            regStartInput.value,
+                            "start"
+                          );
                         }
                         if (regEndInput?.value) {
-                          validateRegistrationDate(regEndInput.value, 'end')
+                          validateRegistrationDate(regEndInput.value, "end");
                         }
                       } else {
-                        setDateError("")
+                        setDateError("");
                       }
                     }}
                   />
@@ -591,48 +664,62 @@ export default function CreateEventPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="startTime" className="text-sm font-semibold flex items-center gap-2">
+                  <Label
+                    htmlFor="startTime"
+                    className="text-sm font-semibold flex items-center gap-2"
+                  >
                     <Clock className="h-4 w-4 text-primary" />
                     Giờ bắt đầu *
                   </Label>
-                  <Input 
-                    id="startTime" 
-                    name="startTime" 
-                    type="time" 
-                    required 
-                    className={`h-11 border-2 focus:border-primary transition-colors ${timeError ? 'border-destructive' : ''}`}
+                  <Input
+                    id="startTime"
+                    name="startTime"
+                    type="time"
+                    required
+                    className={`h-11 border-2 focus:border-primary transition-colors ${
+                      timeError ? "border-destructive" : ""
+                    }`}
                     onChange={(e) => {
-                      const startTime = e.target.value
-                      const endTimeInput = document.getElementById('endTime') as HTMLInputElement
-                      const endTime = endTimeInput?.value
+                      const startTime = e.target.value;
+                      const endTimeInput = document.getElementById(
+                        "endTime"
+                      ) as HTMLInputElement;
+                      const endTime = endTimeInput?.value;
                       if (startTime && endTime) {
-                        validateTimeRange(startTime, endTime)
+                        validateTimeRange(startTime, endTime);
                       } else {
-                        setTimeError("")
+                        setTimeError("");
                       }
                     }}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="endTime" className="text-sm font-semibold flex items-center gap-2">
+                  <Label
+                    htmlFor="endTime"
+                    className="text-sm font-semibold flex items-center gap-2"
+                  >
                     <Clock className="h-4 w-4 text-primary" />
                     Giờ kết thúc *
                   </Label>
-                  <Input 
-                    id="endTime" 
-                    name="endTime" 
-                    type="time" 
-                    required 
-                    className={`h-11 border-2 focus:border-primary transition-colors ${timeError ? 'border-destructive' : ''}`}
+                  <Input
+                    id="endTime"
+                    name="endTime"
+                    type="time"
+                    required
+                    className={`h-11 border-2 focus:border-primary transition-colors ${
+                      timeError ? "border-destructive" : ""
+                    }`}
                     onChange={(e) => {
-                      const endTime = e.target.value
-                      const startTimeInput = document.getElementById('startTime') as HTMLInputElement
-                      const startTime = startTimeInput?.value
+                      const endTime = e.target.value;
+                      const startTimeInput = document.getElementById(
+                        "startTime"
+                      ) as HTMLInputElement;
+                      const startTime = startTimeInput?.value;
                       if (startTime && endTime) {
-                        validateTimeRange(startTime, endTime)
+                        validateTimeRange(startTime, endTime);
                       } else {
-                        setTimeError("")
+                        setTimeError("");
                       }
                     }}
                   />
@@ -645,21 +732,31 @@ export default function CreateEventPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-semibold flex items-center gap-2">
+                  <Label
+                    htmlFor="location"
+                    className="text-sm font-semibold flex items-center gap-2"
+                  >
                     <MapPin className="h-4 w-4 text-primary" />
-                    Địa điểm {!selectedHallId && <span className="text-destructive">*</span>}
+                    Địa điểm{" "}
+                    {!selectedHallId && (
+                      <span className="text-destructive">*</span>
+                    )}
                   </Label>
-                  <Input 
-                    id="location" 
-                    name="location" 
-                    placeholder="Hall A, FPTU HCMC" 
-                    className={`h-11 border-2 focus:border-primary transition-colors ${locationError ? 'border-destructive' : ''}`}
+                  <Input
+                    id="location"
+                    name="location"
+                    placeholder="Hall A, FPTU HCMC"
+                    className={`h-11 border-2 focus:border-primary transition-colors ${
+                      locationError ? "border-destructive" : ""
+                    }`}
                     onChange={(e) => {
-                      const value = e.target.value.trim()
+                      const value = e.target.value.trim();
                       if (!selectedHallId && (!value || value.length === 0)) {
-                        setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
+                        setLocationError(
+                          "Vui lòng chọn Hall hoặc nhập Địa điểm"
+                        );
                       } else {
-                        setLocationError("")
+                        setLocationError("");
                       }
                     }}
                   />
@@ -669,7 +766,9 @@ export default function CreateEventPage() {
                       {locationError}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">Nếu chọn Hall phía dưới, Location có thể để trống.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Nếu chọn Hall phía dưới, Location có thể để trống.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -680,18 +779,22 @@ export default function CreateEventPage() {
                   <Users className="h-5 w-5 text-primary" />
                   Vé & Tag
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Thiết lập đăng ký và tag (không cần nhập số ghế)</CardDescription>
+                <CardDescription className="text-sm mt-1">
+                  Thiết lập đăng ký và tag (không cần nhập số ghế)
+                </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-3 gap-5 p-6">
                 <div className="space-y-2">
                   <Label htmlFor="registrationStart">Registration Start</Label>
-                  <Input 
-                    id="registrationStart" 
-                    name="registrationStart" 
-                    type="datetime-local" 
-                    className={registrationStartError ? 'border-destructive' : ''}
+                  <Input
+                    id="registrationStart"
+                    name="registrationStart"
+                    type="datetime-local"
+                    className={
+                      registrationStartError ? "border-destructive" : ""
+                    }
                     onChange={(e) => {
-                      validateRegistrationDate(e.target.value, 'start')
+                      validateRegistrationDate(e.target.value, "start");
                     }}
                   />
                   {registrationStartError && (
@@ -704,13 +807,13 @@ export default function CreateEventPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="registrationEnd">Registration End</Label>
-                  <Input 
-                    id="registrationEnd" 
-                    name="registrationEnd" 
-                    type="datetime-local" 
-                    className={registrationEndError ? 'border-destructive' : ''}
+                  <Input
+                    id="registrationEnd"
+                    name="registrationEnd"
+                    type="datetime-local"
+                    className={registrationEndError ? "border-destructive" : ""}
                     onChange={(e) => {
-                      validateRegistrationDate(e.target.value, 'end')
+                      validateRegistrationDate(e.target.value, "end");
                     }}
                   />
                   {registrationEndError && (
@@ -740,11 +843,18 @@ export default function CreateEventPage() {
                   <Tag className="h-5 w-5 text-primary" />
                   Thông tin bổ sung
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Hall,  Tags, Speakers, Ảnh</CardDescription>
+                <CardDescription className="text-sm mt-1">
+                  Hall, Tags, Speakers, Ảnh
+                </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hallId">Hall {!locationError && <span className="text-muted-foreground">(tuỳ chọn)</span>}</Label>
+                  <Label htmlFor="hallId">
+                    Hall{" "}
+                    {!locationError && (
+                      <span className="text-muted-foreground">(tuỳ chọn)</span>
+                    )}
+                  </Label>
                   {isHallsLoading ? (
                     <Skeleton className="h-10 w-full" />
                   ) : halls.length > 0 ? (
@@ -752,18 +862,26 @@ export default function CreateEventPage() {
                       value={selectedHallId ?? undefined}
                       onValueChange={(value) => {
                         if (value === "__none") {
-                          setSelectedHallId(undefined)
+                          setSelectedHallId(undefined);
                         } else {
-                          setSelectedHallId(value as string)
+                          setSelectedHallId(value as string);
                         }
                         // Clear location error if hall is selected
                         if (value !== "__none") {
-                          setLocationError("")
+                          setLocationError("");
                         } else {
                           // Re-validate location if hall is deselected
-                          const locationInput = document.getElementById('location') as HTMLInputElement
-                          if (locationInput && (!locationInput.value || locationInput.value.trim().length === 0)) {
-                            setLocationError("Vui lòng chọn Hall hoặc nhập Địa điểm")
+                          const locationInput = document.getElementById(
+                            "location"
+                          ) as HTMLInputElement;
+                          if (
+                            locationInput &&
+                            (!locationInput.value ||
+                              locationInput.value.trim().length === 0)
+                          ) {
+                            setLocationError(
+                              "Vui lòng chọn Hall hoặc nhập Địa điểm"
+                            );
                           }
                         }
                       }}
@@ -776,7 +894,6 @@ export default function CreateEventPage() {
                         {halls.map((hall) => (
                           <SelectItem key={hall.hallId} value={hall.hallId}>
                             {hall.name}
-                            
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -797,7 +914,11 @@ export default function CreateEventPage() {
                   <Label htmlFor="tags">Tags (phân tách bởi dấu phẩy)</Label>
                   <div className="flex items-center gap-2">
                     <Tag className="h-4 w-4 text-muted-foreground" />
-                    <Input id="tags" name="tags" placeholder="tech, ai, seminar" />
+                    <Input
+                      id="tags"
+                      name="tags"
+                      placeholder="tech, ai, seminar"
+                    />
                   </div>
                 </div>
 
@@ -809,7 +930,9 @@ export default function CreateEventPage() {
                     <div className="grid gap-2">
                       <div className="rounded-lg border bg-card p-3 space-y-3 max-h-64 overflow-y-auto">
                         {speakers.map((sp) => {
-                          const checked = selectedSpeakerIds.includes(sp.speakerId)
+                          const checked = selectedSpeakerIds.includes(
+                            sp.speakerId
+                          );
                           return (
                             <label
                               key={sp.speakerId}
@@ -821,14 +944,21 @@ export default function CreateEventPage() {
                                 checked={checked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedSpeakerIds((prev) => [...prev, sp.speakerId])
+                                    setSelectedSpeakerIds((prev) => [
+                                      ...prev,
+                                      sp.speakerId,
+                                    ]);
                                   } else {
-                                    setSelectedSpeakerIds((prev) => prev.filter((id) => id !== sp.speakerId))
+                                    setSelectedSpeakerIds((prev) =>
+                                      prev.filter((id) => id !== sp.speakerId)
+                                    );
                                   }
                                 }}
                               />
                               <div className="space-y-1">
-                                <div className="font-semibold text-foreground">{sp.name}</div>
+                                <div className="font-semibold text-foreground">
+                                  {sp.name}
+                                </div>
                                 {sp.bio && (
                                   <div className="text-xs text-muted-foreground leading-snug line-clamp-2">
                                     {sp.bio}
@@ -836,7 +966,7 @@ export default function CreateEventPage() {
                                 )}
                               </div>
                             </label>
-                          )
+                          );
                         })}
                       </div>
                       {selectedSpeakerIds.length > 0 && (
@@ -846,7 +976,9 @@ export default function CreateEventPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Chưa có speaker. Vui lòng thêm speaker trước.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Chưa có speaker. Vui lòng thêm speaker trước.
+                    </p>
                   )}
                 </div>
 
@@ -857,7 +989,9 @@ export default function CreateEventPage() {
                       type="button"
                       variant="outline"
                       className="gap-2"
-                      onClick={() => document.getElementById("imageFile")?.click()}
+                      onClick={() =>
+                        document.getElementById("imageFile")?.click()
+                      }
                     >
                       <Upload className="h-4 w-4" />
                       Chọn ảnh
@@ -873,22 +1007,29 @@ export default function CreateEventPage() {
                     accept="image/*"
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0]
+                      const file = e.target.files?.[0];
                       if (file) {
                         // Giới hạn 5MB
-                        const maxSize = 5 * 1024 * 1024 // 5MB
+                        const maxSize = 5 * 1024 * 1024; // 5MB
                         if (file.size > maxSize) {
-                          toast.error(`Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB. (Hiện tại: ${(file.size / 1024 / 1024).toFixed(2)}MB)`, {
-                            position: 'top-right',
-                            autoClose: 5000,
-                          })
-                          e.target.value = '' // Reset input
-                          setImageFile(null)
-                          return
+                          toast.error(
+                            `Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB. (Hiện tại: ${(
+                              file.size /
+                              1024 /
+                              1024
+                            ).toFixed(2)}MB)`,
+                            {
+                              position: "top-right",
+                              autoClose: 5000,
+                            }
+                          );
+                          e.target.value = ""; // Reset input
+                          setImageFile(null);
+                          return;
                         }
-                        setImageFile(file)
+                        setImageFile(file);
                       } else {
-                        setImageFile(null)
+                        setImageFile(null);
                       }
                     }}
                   />
@@ -908,7 +1049,9 @@ export default function CreateEventPage() {
                   <Upload className="h-5 w-5 text-primary" />
                   Gửi sự kiện
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Xác nhận thông tin trước khi tạo</CardDescription>
+                <CardDescription className="text-sm mt-1">
+                  Xác nhận thông tin trước khi tạo
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
                 <div className="text-sm text-muted-foreground space-y-2 bg-muted/50 p-4 rounded-lg border">
@@ -918,17 +1061,21 @@ export default function CreateEventPage() {
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-primary font-semibold">•</span>
-                    <span>RegistrationStart/End nên là dạng datetime-local.</span>
+                    <span>
+                      RegistrationStart/End nên là dạng datetime-local.
+                    </span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-primary font-semibold">•</span>
-                    <span>Tags/SpeakerIds nhập danh sách, phân tách dấu phẩy.</span>
+                    <span>
+                      Tags/SpeakerIds nhập danh sách, phân tách dấu phẩy.
+                    </span>
                   </p>
                 </div>
                 <Separator />
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting} 
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
                   className="w-full rounded-full h-11 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   {isSubmitting ? (
@@ -958,6 +1105,6 @@ export default function CreateEventPage() {
         </form>
       </div>
     </main>
-  )
+  );
 }
 

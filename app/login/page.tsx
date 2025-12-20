@@ -6,6 +6,8 @@
 "use client";
 
 import type React from "react";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "@/lib/services/auth.service";
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
@@ -33,6 +35,24 @@ function LoginForm() {
   const redirect = searchParams.get("redirect") || null;
 
   const loginMutation = useLogin();
+const handleLoginGoogle = async (idToken: string) => {
+  try {
+    const res = await authService.loginWithGoogle(idToken);
+
+    // 🔥 LƯU TOKEN + USER
+    authService.saveAuthData(res);
+
+    // 🔁 Redirect theo role (đơn giản trước)
+    if (res.roleName === "Organizer") {
+      window.location.href = "/organizer/events";
+    } else {
+      window.location.href = "/";
+    }
+  } catch (error) {
+    console.error("Login Google error:", error);
+    alert("Đăng nhập Google thất bại");
+  }
+};
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +87,9 @@ function LoginForm() {
           </div>
 
           <div className="space-y-2 text-center">
-            <CardTitle className="text-3xl font-bold block">Đăng nhập</CardTitle>
+            <CardTitle className="text-3xl font-bold block">
+              Đăng nhập
+            </CardTitle>
             <CardDescription className="text-base">
               Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
             </CardDescription>
@@ -159,6 +181,18 @@ function LoginForm() {
                 Hoặc
               </span>
             </div>
+          </div>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  handleLoginGoogle(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                alert("Đăng nhập Google thất bại");
+              }}
+            />
           </div>
 
           <p className="text-center text-sm text-muted-foreground mb-4">
