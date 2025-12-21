@@ -173,7 +173,7 @@ export default function ManageUserPage() {
 
          <Button onClick={() => setOpenCreate(true)}>
            <Plus className="h-4 w-4 mr-2" />
-           Create User
+           Tạo tài khoản
          </Button>
        </div>
 
@@ -195,7 +195,7 @@ export default function ManageUserPage() {
            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
            <Input
              className="pl-9"
-             placeholder="Search by name..."
+             placeholder="Tìm kiếm theo tên..."
              value={search}
              onChange={(e) => setSearch(e.target.value)}
            />
@@ -256,12 +256,12 @@ export default function ManageUserPage() {
        <Dialog open={openCreate} onOpenChange={setOpenCreate}>
          <DialogContent className="max-w-xl">
            <DialogHeader>
-             <DialogTitle>Create User</DialogTitle>
+             <DialogTitle>Tạo tài khoản</DialogTitle>
            </DialogHeader>
 
            <div className="space-y-4">
              <div className="space-y-1">
-               <Label>Name *</Label>
+               <Label>Tên *</Label>
                <Input
                  value={newName}
                  onChange={(e) => setNewName(e.target.value)}

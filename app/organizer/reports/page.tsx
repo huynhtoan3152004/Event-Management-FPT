@@ -286,7 +286,7 @@ export default function ReportsPage() {
                 }}
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Clear
+                Làm sạch
               </Button>
             </div>
           </div>
@@ -454,13 +454,13 @@ export default function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">EVENT NAME</TableHead>
-                  <TableHead className="text-xs">DATE</TableHead>
-                  <TableHead className="text-xs text-right">REGISTERED</TableHead>
-                  <TableHead className="text-xs text-right">PARTICIPATED</TableHead>
-                  <TableHead className="text-xs text-right">NOT PARTICIPATED</TableHead>
-                  <TableHead className="text-xs text-right">ABANDONED</TableHead>
-                  <TableHead className="text-xs text-center">ACTION</TableHead>
+                  <TableHead className="text-xs">Tên sự kiện</TableHead>
+                  <TableHead className="text-xs">Ngày</TableHead>
+                  <TableHead className="text-xs text-right">Người đăng kí</TableHead>
+                  <TableHead className="text-xs text-right">Người tham gia</TableHead>
+                  <TableHead className="text-xs text-right">Người không tham gia</TableHead>
+                  <TableHead className="text-xs text-right">Vắng</TableHead>
+                  <TableHead className="text-xs text-center">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
