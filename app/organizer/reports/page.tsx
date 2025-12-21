@@ -34,7 +34,7 @@ import {
 
 export default function ReportsPage() {
   const router = useRouter()
-  const [timeRange, setTimeRange] = useState("6months")
+  const [timeRange, setTimeRange] = useState("all")
   const [fromDate, setFromDate] = useState<string>("")
   const [toDate, setToDate] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
@@ -69,32 +69,41 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchMonthlyData = async () => {
       try {
-        // Calculate date range based on timeRange
-        const today = new Date()
-        const toDateCalc = today.toISOString().split('T')[0] // YYYY-MM-DD
+        // Xây dựng params cho API
+        let params: { fromDate?: string; toDate?: string } = {}
         
-        let fromDateCalc = new Date()
-        switch (timeRange) {
-          case "7days":
-            fromDateCalc.setDate(today.getDate() - 7)
-            break
-          case "30days":
-            fromDateCalc.setDate(today.getDate() - 30)
-            break
-          case "6months":
-            fromDateCalc.setMonth(today.getMonth() - 6)
-            break
-          case "1year":
-            fromDateCalc.setFullYear(today.getFullYear() - 1)
-            break
-          default:
-            fromDateCalc.setMonth(today.getMonth() - 6)
+        // Nếu user đã chọn ngày cụ thể
+        if (fromDate) params.fromDate = fromDate
+        if (toDate) params.toDate = toDate
+        
+        // Chỉ tính toán ngày khi timeRange không phải "all" VÀ user chưa chọn ngày
+        if (timeRange !== "all" && !fromDate && !toDate) {
+          const today = new Date()
+          const fromDateObj = new Date()
+          
+          switch (timeRange) {
+            case "7days":
+              fromDateObj.setDate(today.getDate() - 7)
+              break
+            case "30days":
+              fromDateObj.setDate(today.getDate() - 30)
+              break
+            case "6months":
+              fromDateObj.setMonth(today.getMonth() - 6)
+              break
+            case "1year":
+              fromDateObj.setFullYear(today.getFullYear() - 1)
+              break
+          }
+          
+          params.fromDate = fromDateObj.toISOString().split('T')[0]
+          params.toDate = today.toISOString().split('T')[0]
         }
         
-        const response = await reportService.getMonthlyReport({
-          fromDate: fromDate || fromDateCalc.toISOString().split('T')[0],
-          toDate: toDate || toDateCalc
-        })
+        // Gọi API - nếu params rỗng thì lấy tất cả
+        const response = await reportService.getMonthlyReport(
+          Object.keys(params).length > 0 ? params : undefined
+        )
         if (response.success && response.data) {
           setMonthlyData(response.data)
         }
@@ -111,32 +120,41 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchEventListReport = async () => {
       try {
-        // Calculate date range based on timeRange
-        const today = new Date()
-        const toDateCalc = toDate || today.toISOString().split('T')[0] // YYYY-MM-DD
+        // Xây dựng params cho API
+        let params: { fromDate?: string; toDate?: string } = {}
         
-        let fromDateCalc = new Date(fromDate || today)
-        switch (timeRange) {
-          case "7days":
-            fromDateCalc.setDate(today.getDate() - 7)
-            break
-          case "30days":
-            fromDateCalc.setDate(today.getDate() - 30)
-            break
-          case "6months":
-            fromDateCalc.setMonth(today.getMonth() - 6)
-            break
-          case "1year":
-            fromDateCalc.setFullYear(today.getFullYear() - 1)
-            break
-          default:
-            fromDateCalc.setMonth(today.getMonth() - 6)
+        // Nếu user đã chọn ngày cụ thể
+        if (fromDate) params.fromDate = fromDate
+        if (toDate) params.toDate = toDate
+        
+        // Chỉ tính toán ngày khi timeRange không phải "all" VÀ user chưa chọn ngày
+        if (timeRange !== "all" && !fromDate && !toDate) {
+          const today = new Date()
+          const fromDateObj = new Date()
+          
+          switch (timeRange) {
+            case "7days":
+              fromDateObj.setDate(today.getDate() - 7)
+              break
+            case "30days":
+              fromDateObj.setDate(today.getDate() - 30)
+              break
+            case "6months":
+              fromDateObj.setMonth(today.getMonth() - 6)
+              break
+            case "1year":
+              fromDateObj.setFullYear(today.getFullYear() - 1)
+              break
+          }
+          
+          params.fromDate = fromDateObj.toISOString().split('T')[0]
+          params.toDate = today.toISOString().split('T')[0]
         }
         
-        const response = await reportService.getEventListReport({
-          fromDate: fromDate || fromDateCalc.toISOString().split('T')[0],
-          toDate: toDateCalc
-        })
+        // Gọi API - nếu params rỗng thì lấy tất cả
+        const response = await reportService.getEventListReport(
+          Object.keys(params).length > 0 ? params : undefined
+        )
         if (response.success && response.data) {
           setEventReportData(response.data)
         }
