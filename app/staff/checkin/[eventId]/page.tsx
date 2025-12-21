@@ -796,11 +796,11 @@
                      <p className="text-2xl font-bold text-primary">
                        {stats.checkedIn}
                      </p>
-                     <p className="text-xs text-muted-foreground">Đã đăng ký</p>
+                     <p className="text-xs text-muted-foreground">Đã check-in</p>
                    </div>
                    <div className="text-center px-4 py-2 bg-background/80 rounded-lg">
                      <p className="text-2xl font-bold">{stats.totalRegistered}</p>
-                     <p className="text-xs text-muted-foreground">Đã đăng ký</p>
+                     <p className="text-xs text-muted-foreground">Tổng số vé</p>
                    </div>
                    <div className="text-center px-4 py-2 bg-background/80 rounded-lg">
                      <p className="text-2xl font-bold text-success">

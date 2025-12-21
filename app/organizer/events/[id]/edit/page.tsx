@@ -72,6 +72,72 @@ export default function EditEventPage() {
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split('T')[0]
   
+  // Get date 3 days from now for min attribute of event date
+  const minEventDate = new Date()
+  minEventDate.setDate(minEventDate.getDate() + 3)
+  const minEventDateStr = minEventDate.toISOString().split("T")[0]
+  
+  // Get current datetime in format for datetime-local input (YYYY-MM-DDTHH:mm)
+  const getCurrentDateTimeLocal = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+  
+  const minDateTimeLocal = getCurrentDateTimeLocal()
+  
+  /**
+   * CONVERT DATETIME-LOCAL TO UTC ISO STRING (giống create event)
+   * 
+   * Backend lưu datetime ở UTC, nhưng datetime-local input không có timezone info
+   * Giải pháp: Frontend cần gửi datetime ở UTC (không có timezone offset)
+   * 
+   * Input: "2025-01-20T08:00" (local time từ datetime-local input)
+   * Output: "2025-01-20T01:00:00Z" (UTC, nếu local timezone là +07:00)
+   * 
+   * Logic:
+   * 1. Parse datetime-local string như local time
+   * 2. Convert sang UTC bằng toISOString()
+   * 3. Backend sẽ nhận UTC và lưu đúng
+   */
+  const toLocalISOStringWithOffset = (local: string) => {
+    // local: "2025-01-20T08:00" (datetime-local format, không có timezone)
+    // JavaScript sẽ parse nó như local time của browser
+    const d = new Date(local)
+    
+    // Convert sang UTC và trả về ISO string với "Z" (UTC)
+    // Ví dụ: "2025-01-20T01:00:00.000Z" nếu local timezone là +07:00
+    return d.toISOString()
+  }
+  
+  // Convert backend datetime to local datetime-local format (YYYY-MM-DDTHH:mm)
+  // Backend trả về UTC datetime, nhưng không convert timezone, chỉ parse và format lại
+  const convertUTCToLocalDateTimeLocal = (dateString: string) => {
+    const trimmed = dateString.trim()
+    
+    // Parse datetime string
+    const date = new Date(trimmed)
+    
+    if (isNaN(date.getTime())) {
+      console.error('Failed to parse date:', dateString)
+      return trimmed // Fallback: return original string
+    }
+    
+    // Lấy UTC hours/minutes để không bị convert timezone
+    // Nếu backend trả về UTC, lấy UTC hours/minutes sẽ giữ nguyên giá trị
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const hours = String(date.getUTCHours()).padStart(2, '0')
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+  
   // Check if current event date is in the past (to allow editing old events)
   const isCurrentDateInPast = eventData?.date ? (new Date(eventData.date) < new Date(today)) : false
   
@@ -94,7 +160,16 @@ export default function EditEventPage() {
     }
   }
 
-  // Validate registration dates must be after event date
+  /**
+   * VALIDATE NGÀY ĐĂNG KÝ VÀ NGÀY KẾT THÚC ĐĂNG KÝ
+   * 
+   * Rules:
+   * 1. Không được chọn ngày/giờ trong quá khứ
+   * 2. Ngày đăng ký phải trước ngày diễn ra sự kiện
+   * 3. Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+   *    (Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng)
+   * 4. Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+   */
   const validateRegistrationDate = (registrationDate: string, field: 'start' | 'end') => {
     if (!registrationDate) {
       if (field === 'start') {
@@ -105,10 +180,26 @@ export default function EditEventPage() {
       return
     }
 
+    const regDate = new Date(registrationDate)
+    const now = new Date()
+    now.setSeconds(0, 0) // Set seconds và milliseconds về 0 để so sánh chính xác
+
+    // Rule 1: Không được chọn ngày trong quá khứ
+    if (regDate < now) {
+      const errorMsg = "Không được chọn ngày/giờ trong quá khứ"
+      if (field === 'start') {
+        setRegistrationStartError(errorMsg)
+      } else {
+        setRegistrationEndError(errorMsg)
+      }
+      return
+    }
+
     const dateInput = document.getElementById('date') as HTMLInputElement
     const eventDate = dateInput?.value
 
     if (!eventDate) {
+      // Nếu chưa chọn ngày sự kiện, chỉ validate không được quá khứ
       if (field === 'start') {
         setRegistrationStartError("")
       } else {
@@ -117,15 +208,14 @@ export default function EditEventPage() {
       return
     }
 
-    const regDate = new Date(registrationDate)
     const evtDate = new Date(eventDate)
     evtDate.setHours(0, 0, 0, 0)
-    
-    // Set registration date to start of day for fair comparison
+
+    // Set registration date to start of day for fair comparison với event date
     const regDateOnly = new Date(regDate)
     regDateOnly.setHours(0, 0, 0, 0)
 
-    // Registration date must be BEFORE event date (so people can register before the event)
+    // Rule 2: Registration date must be BEFORE event date
     if (regDateOnly >= evtDate) {
       const errorMsg = "Ngày đăng ký phải trước ngày diễn ra sự kiện"
       if (field === 'start') {
@@ -133,12 +223,52 @@ export default function EditEventPage() {
       } else {
         setRegistrationEndError(errorMsg)
       }
-    } else {
-      if (field === 'start') {
-        setRegistrationStartError("")
-      } else {
-        setRegistrationEndError("")
+      return
+    }
+
+    // Rule 3: Nếu là ngày kết thúc, phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+    // Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng
+    if (field === 'end') {
+      const regStartInput = document.getElementById('registrationStart') as HTMLInputElement
+      const regStartValue = regStartInput?.value
+      
+      if (regStartValue) {
+        const regStartDate = new Date(regStartValue)
+        
+        // Tính số giờ chênh lệch (có thể âm nếu ngày kết thúc trước ngày bắt đầu)
+        const hoursDiff = (regDate.getTime() - regStartDate.getTime()) / (1000 * 60 * 60)
+        
+        // Ngày kết thúc phải sau ngày bắt đầu ít nhất 2 tiếng
+        if (hoursDiff < 2) {
+          setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng")
+          return
+        }
       }
+    }
+
+    // Nếu là ngày bắt đầu, kiểm tra ngày kết thúc có hợp lệ không
+    if (field === 'start') {
+      const regEndInput = document.getElementById('registrationEnd') as HTMLInputElement
+      const regEndValue = regEndInput?.value
+      
+      if (regEndValue) {
+        const regEndDate = new Date(regEndValue)
+        const hoursDiff = (regEndDate.getTime() - regDate.getTime()) / (1000 * 60 * 60)
+        
+        // Ngày kết thúc phải sau ngày bắt đầu ít nhất 2 tiếng
+        if (hoursDiff < 2) {
+          setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng")
+        } else {
+          setRegistrationEndError("")
+        }
+      }
+    }
+
+    // Clear error nếu tất cả validation đều pass
+    if (field === 'start') {
+      setRegistrationStartError("")
+    } else {
+      setRegistrationEndError("")
     }
   }
 
@@ -187,36 +317,55 @@ export default function EditEventPage() {
                 endTimeInput.value = data.endTime.substring(0, 5) // HH:mm
               }
               
-              const locationInput = form.querySelector<HTMLInputElement>('#location')
-              if (locationInput) locationInput.value = data.location || ''
-              
-              const clubNameInput = form.querySelector<HTMLInputElement>('#clubName')
-              if (clubNameInput) clubNameInput.value = data.clubName || ''
-              
               const tagsInput = form.querySelector<HTMLInputElement>('#tags')
               if (tagsInput) tagsInput.value = data.tags || ''
               
-              const maxTicketsInput = form.querySelector<HTMLInputElement>('#maxTicketsPerUser')
-              if (maxTicketsInput && data.maxTicketsPerUser) {
-                maxTicketsInput.value = String(data.maxTicketsPerUser)
-              }
-              
-              // Set registration dates
-              if (data.registrationStart) {
-                const regStartInput = form.querySelector<HTMLInputElement>('#registrationStart')
-                if (regStartInput) {
-                  const regStart = new Date(data.registrationStart)
-                  regStartInput.value = regStart.toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
-                }
-              }
-              
-              if (data.registrationEnd) {
-                const regEndInput = form.querySelector<HTMLInputElement>('#registrationEnd')
-                if (regEndInput) {
-                  const regEnd = new Date(data.registrationEnd)
-                  regEndInput.value = regEnd.toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
-                }
-              }
+               // Set registration dates - Convert UTC to local time
+               if (data.registrationStart) {
+                 const regStartInput = form.querySelector<HTMLInputElement>('#registrationStart')
+                 if (regStartInput) {
+                   // Debug: Log để kiểm tra format từ backend
+                   console.log('Backend registrationStart (raw):', data.registrationStart)
+                   console.log('Backend registrationStart (type):', typeof data.registrationStart)
+                   
+                   // Convert UTC datetime từ backend sang local datetime-local format
+                   const localDateTime = convertUTCToLocalDateTimeLocal(data.registrationStart)
+                   console.log('Converted to local:', localDateTime)
+                   
+                   // Debug: Kiểm tra timezone offset
+                   const testDate = new Date(data.registrationStart.endsWith('Z') ? data.registrationStart : data.registrationStart + 'Z')
+                   console.log('UTC Date object:', testDate.toISOString())
+                   console.log('Local hours:', testDate.getHours())
+                   console.log('UTC hours:', testDate.getUTCHours())
+                   console.log('Timezone offset (minutes):', testDate.getTimezoneOffset())
+                   
+                   regStartInput.value = localDateTime
+                   
+                   // Set min cho registrationEnd = registrationStart + 2 tiếng (dùng local time)
+                   const regEndInput = form.querySelector<HTMLInputElement>('#registrationEnd')
+                   if (regEndInput) {
+                     // Parse local datetime và thêm 2 tiếng
+                     const regStartDate = new Date(localDateTime) // Parse như local time
+                     regStartDate.setHours(regStartDate.getHours() + 2) // Thêm 2 tiếng
+                     
+                     // Format thành datetime-local format (YYYY-MM-DDTHH:mm) - local time
+                     const year = regStartDate.getFullYear()
+                     const month = String(regStartDate.getMonth() + 1).padStart(2, '0')
+                     const day = String(regStartDate.getDate()).padStart(2, '0')
+                     const hours = String(regStartDate.getHours()).padStart(2, '0')
+                     const minutes = String(regStartDate.getMinutes()).padStart(2, '0')
+                     regEndInput.min = `${year}-${month}-${day}T${hours}:${minutes}`
+                   }
+                 }
+               }
+               
+               if (data.registrationEnd) {
+                 const regEndInput = form.querySelector<HTMLInputElement>('#registrationEnd')
+                 if (regEndInput) {
+                   // Convert UTC datetime từ backend sang local datetime-local format
+                   regEndInput.value = convertUTCToLocalDateTimeLocal(data.registrationEnd)
+                 }
+               }
             }
           }, 100)
         } else {
@@ -244,7 +393,7 @@ export default function EditEventPage() {
           setHalls(res.data.data)
         }
       } catch (error) {
-        toast.error("Không tải được danh sách hall, hãy thử lại hoặc nhập Location thủ công.")
+        toast.error("Không tải được danh sách hall, hãy thử lại.")
       } finally {
         setIsHallsLoading(false)
       }
@@ -276,25 +425,25 @@ export default function EditEventPage() {
       setIsSubmitting(true)
 
       // Extract values
+      const registrationStartRaw = (formData.get("registrationStart") as string) || undefined
+      const registrationEndRaw = (formData.get("registrationEnd") as string) || undefined
+      
       const payload = {
         title: formData.get("title") as string,
         description: (formData.get("description") as string) || undefined,
         date: formData.get("date") as string,
         startTime: formData.get("startTime") as string,
         endTime: formData.get("endTime") as string,
-        location: (formData.get("location") as string) || undefined,
         hallId: selectedHallId || undefined,
-        clubName: (formData.get("clubName") as string) || undefined,
-        registrationStart: (formData.get("registrationStart") as string) || undefined,
-        registrationEnd: (formData.get("registrationEnd") as string) || undefined,
+        // Giữ nguyên datetime-local string để validate (giống create event)
+        registrationStart: registrationStartRaw,
+        registrationEnd: registrationEndRaw,
         tags:
           (formData.get("tags") as string)
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-        maxTicketsPerUser: formData.get("maxTicketsPerUser")
-          ? Number(formData.get("maxTicketsPerUser"))
-          : undefined,
+        maxTicketsPerUser: 1, // Luôn set là 1
         imageFile: imageFile || undefined, // Chỉ gửi nếu có file mới
       }
 
@@ -304,14 +453,21 @@ export default function EditEventPage() {
         return
       }
 
-      // Validate date không được ở quá khứ
-      const eventDate = new Date(payload.date)
-      const todayDate = new Date()
-      todayDate.setHours(0, 0, 0, 0)
-      if (eventDate < todayDate) {
-        toast.error("Ngày sự kiện không được ở quá khứ")
+      // Validate date phải cách ngày hiện tại ít nhất 3 ngày
+      if (!payload.date) {
+        setDateError("Ngày sự kiện là bắt buộc")
         setIsSubmitting(false)
         return
+      } else {
+        const eventDate = new Date(payload.date)
+        const minAllowedDate = new Date()
+        minAllowedDate.setDate(minAllowedDate.getDate() + 3)
+        minAllowedDate.setHours(0, 0, 0, 0) // Compare only date part
+        if (eventDate < minAllowedDate) {
+          setDateError("Ngày diễn ra phải cách ngày hiện tại ít nhất 3 ngày")
+          setIsSubmitting(false)
+          return
+        }
       }
 
       // Validate EndTime > StartTime
@@ -326,32 +482,92 @@ export default function EditEventPage() {
         return
       }
 
-      // Validate registration dates must be before event date
+      // Validate hallId phải có (bắt buộc)
+      if (!payload.hallId) {
+        toast.error("Vui lòng chọn Hall")
+        setIsSubmitting(false)
+        return
+      }
+
+      /**
+       * VALIDATE NGÀY ĐĂNG KÝ VÀ NGÀY KẾT THÚC ĐĂNG KÝ
+       * 
+       * Rules:
+       * 1. Không được chọn ngày/giờ trong quá khứ
+       * 2. Ngày đăng ký phải trước ngày diễn ra sự kiện
+       * 3. Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+       * 4. Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+       */
+      const now = new Date()
+      now.setSeconds(0, 0) // Set seconds và milliseconds về 0 để so sánh chính xác
+
       if (payload.registrationStart) {
         const regStartDate = new Date(payload.registrationStart)
-        const evtDate = new Date(payload.date)
-        evtDate.setHours(0, 0, 0, 0)
-        regStartDate.setHours(0, 0, 0, 0)
-        if (regStartDate >= evtDate) {
-          toast.error("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
+        
+        // Rule 1: Không được chọn ngày/giờ trong quá khứ
+        if (regStartDate < now) {
+          setRegistrationStartError("Không được chọn ngày/giờ trong quá khứ")
           setIsSubmitting(false)
           return
+        } else {
+          // Rule 2: Ngày đăng ký phải trước ngày diễn ra sự kiện
+          const evtDate = new Date(payload.date)
+          evtDate.setHours(0, 0, 0, 0)
+          const regStartDateOnly = new Date(regStartDate)
+          regStartDateOnly.setHours(0, 0, 0, 0)
+          
+          if (regStartDateOnly >= evtDate) {
+            setRegistrationStartError("Ngày bắt đầu đăng ký phải trước ngày diễn ra sự kiện")
+            setIsSubmitting(false)
+            return
+          }
         }
       }
-
+      
       if (payload.registrationEnd) {
         const regEndDate = new Date(payload.registrationEnd)
-        const evtDate = new Date(payload.date)
-        evtDate.setHours(0, 0, 0, 0)
-        regEndDate.setHours(0, 0, 0, 0)
-        if (regEndDate >= evtDate) {
-          toast.error("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
+        
+        // Rule 1: Không được chọn ngày/giờ trong quá khứ
+        if (regEndDate < now) {
+          setRegistrationEndError("Không được chọn ngày/giờ trong quá khứ")
           setIsSubmitting(false)
           return
+        } else {
+          // Rule 3: Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng
+          // Cho phép trùng ngày nhưng giờ phải cách nhau ít nhất 2 tiếng
+          if (payload.registrationStart) {
+            const regStartDate = new Date(payload.registrationStart)
+            const hoursDiff = (regEndDate.getTime() - regStartDate.getTime()) / (1000 * 60 * 60)
+            
+            if (hoursDiff < 2) {
+              setRegistrationEndError("Ngày kết thúc đăng ký phải sau ngày bắt đầu đăng ký ít nhất 2 tiếng")
+              setIsSubmitting(false)
+              return
+            }
+          }
+          
+          // Rule 4: Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện
+          const evtDate = new Date(payload.date)
+          evtDate.setHours(0, 0, 0, 0)
+          const regEndDateOnly = new Date(regEndDate)
+          regEndDateOnly.setHours(0, 0, 0, 0)
+          
+          if (regEndDateOnly >= evtDate) {
+            setRegistrationEndError("Ngày kết thúc đăng ký phải trước ngày diễn ra sự kiện")
+            setIsSubmitting(false)
+            return
+          }
         }
       }
 
-      await eventService.updateEvent(eventId, payload)
+      // Convert datetime-local sang UTC ISO string trước khi gửi lên backend (giống create event)
+      const updatePayload = {
+        ...payload,
+        registrationStart: payload.registrationStart ? toLocalISOStringWithOffset(payload.registrationStart) : undefined,
+        registrationEnd: payload.registrationEnd ? toLocalISOStringWithOffset(payload.registrationEnd) : undefined,
+      }
+      
+      await eventService.updateEvent(eventId, updatePayload)
       toast.success("Cập nhật sự kiện thành công!")
       router.push("/organizer/events")
     } catch (error: any) {
@@ -412,7 +628,7 @@ export default function EditEventPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Thông tin chính</CardTitle>
-                <CardDescription>Tiêu đề, mô tả, thời gian và địa điểm</CardDescription>
+                <CardDescription>Tiêu đề, mô tả, thời gian và hall</CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-2">
@@ -440,16 +656,17 @@ export default function EditEventPage() {
                         name="date" 
                         type="date" 
                         required 
-                        min={isCurrentDateInPast ? undefined : today}
+                        min={isCurrentDateInPast ? undefined : minEventDateStr}
                         className={dateError ? 'border-destructive' : ''}
                         onChange={(e) => {
                           const selectedDate = e.target.value
                           if (selectedDate) {
                             const eventDate = new Date(selectedDate)
-                            const todayDate = new Date()
-                            todayDate.setHours(0, 0, 0, 0)
-                            if (eventDate < todayDate) {
-                              setDateError("Ngày không được chọn ngày trong quá khứ")
+                            const minAllowedDate = new Date()
+                            minAllowedDate.setDate(minAllowedDate.getDate() + 3)
+                            minAllowedDate.setHours(0, 0, 0, 0)
+                            if (eventDate < minAllowedDate) {
+                              setDateError("Ngày diễn ra phải cách ngày hiện tại ít nhất 3 ngày")
                             } else {
                               setDateError("")
                             }
@@ -535,12 +752,37 @@ export default function EditEventPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Địa điểm</Label>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <Input id="location" name="location" placeholder="Hall A, FPTU HCMC" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-5">Nếu chọn Hall phía dưới, Location có thể để trống.</p>
+                  <Label htmlFor="hallId">Hall <span className="text-destructive">*</span></Label>
+                  {isHallsLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : halls.length > 0 ? (
+                    <Select
+                      value={selectedHallId ?? undefined}
+                      onValueChange={(value) => {
+                        if (value === "__none") {
+                          setSelectedHallId(undefined)
+                        } else {
+                          setSelectedHallId(value as string)
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="hallId">
+                        <SelectValue placeholder="Chọn hall" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {halls.map((hall) => (
+                          <SelectItem key={hall.hallId} value={hall.hallId}>
+                            {hall.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span>
+                      Không tải được hall. Vui lòng thử lại.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -557,9 +799,25 @@ export default function EditEventPage() {
                     id="registrationStart" 
                     name="registrationStart" 
                     type="datetime-local" 
+                    min={minDateTimeLocal}
                     className={registrationStartError ? 'border-destructive' : ''}
                     onChange={(e) => {
                       validateRegistrationDate(e.target.value, 'start')
+                      // Update min của registrationEnd khi registrationStart thay đổi
+                      // Min = registrationStart + 2 tiếng (cho phép trùng ngày nhưng phải cách ít nhất 2 tiếng)
+                      const regEndInput = document.getElementById('registrationEnd') as HTMLInputElement
+                      if (regEndInput && e.target.value) {
+                        const regStartDate = new Date(e.target.value)
+                        regStartDate.setHours(regStartDate.getHours() + 2) // Thêm 2 tiếng
+                        
+                        // Format thành datetime-local format (YYYY-MM-DDTHH:mm)
+                        const year = regStartDate.getFullYear()
+                        const month = String(regStartDate.getMonth() + 1).padStart(2, '0')
+                        const day = String(regStartDate.getDate()).padStart(2, '0')
+                        const hours = String(regStartDate.getHours()).padStart(2, '0')
+                        const minutes = String(regStartDate.getMinutes()).padStart(2, '0')
+                        regEndInput.min = `${year}-${month}-${day}T${hours}:${minutes}`
+                      }
                     }}
                   />
                   {registrationStartError && (
@@ -576,6 +834,7 @@ export default function EditEventPage() {
                     id="registrationEnd" 
                     name="registrationEnd" 
                     type="datetime-local" 
+                    min={minDateTimeLocal}
                     className={registrationEndError ? 'border-destructive' : ''}
                     onChange={(e) => {
                       validateRegistrationDate(e.target.value, 'end')
@@ -589,60 +848,15 @@ export default function EditEventPage() {
                   )}
                 </div>
 
-                <div className="space-y-2 mb-5">
-                  <Label htmlFor="maxTicketsPerUser">MaxTicketsPerUser</Label>
-                  <Input
-                    id="maxTicketsPerUser"
-                    name="maxTicketsPerUser"
-                    type="number"
-                    min={1}
-                    placeholder="1"
-                  />
-                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Thông tin bổ sung</CardTitle>
-                <CardDescription>Hall, Club, Tags, Speakers, Ảnh</CardDescription>
+                <CardDescription>Tags, Speakers, Ảnh</CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hallId">Hall (tuỳ chọn)</Label>
-                  {isHallsLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : halls.length > 0 ? (
-                    <Select
-                      value={selectedHallId ?? undefined}
-                      onValueChange={(value) =>
-                        setSelectedHallId(value === "__none" ? undefined : (value as string | undefined))
-                      }
-                    >
-                      <SelectTrigger id="hallId">
-                        <SelectValue placeholder="Chọn hall (nếu có)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none">(Không chọn hall)</SelectItem>
-                        {halls.map((hall) => (
-                          <SelectItem key={hall.hallId} value={hall.hallId}>
-                            {hall.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Không tải được hall. Bạn có thể nhập Location thủ công.
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="clubName">ClubName</Label>
-                  <Input id="clubName" name="clubName" placeholder="FPTU Event Club" />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags (phân tách bởi dấu phẩy)</Label>
                   <div className="flex items-center gap-2">

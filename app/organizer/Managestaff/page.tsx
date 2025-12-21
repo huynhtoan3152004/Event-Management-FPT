@@ -121,7 +121,7 @@ export default function ManageUserPage() {
   };
 
   /* =========================
-     CREATE USER (FormData)
+     CREATE USER
   ========================= */
   const handleCreateUser = async () => {
     if (!newName || !newEmail || !newRole || !newPassword) {
@@ -157,250 +157,244 @@ export default function ManageUserPage() {
     }
   };
 
- return (
-   <>
-     <OrganizerHeader title="Manage Users" />
+  return (
+    <>
+      <OrganizerHeader title="Manage Users" />
 
-     <main className="flex-1 p-4 lg:p-6 space-y-6">
-       {/* Header */}
-       <div className="flex items-center justify-between">
-         <div>
-           <h1 className="text-2xl font-semibold">
-             Quản lý tài khoản theo role
-           </h1>
+      <main className="flex-1 p-4 lg:p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Quản lý tài khoản</h1>
 
-         </div>
+          <Button onClick={() => setOpenCreate(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo tài khoản người dùng
+          </Button>
+        </div>
 
-         <Button onClick={() => setOpenCreate(true)}>
-           <Plus className="h-4 w-4 mr-2" />
-          Tạo tài khoản người dùng 
-         </Button>
-       </div>
+        {/* Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            {(["staff", "student", "organizer"] as Role[]).map((role) => (
+              <div key={role} className="flex items-center gap-2">
+                <Checkbox
+                  checked={roles.includes(role)}
+                  onCheckedChange={() => toggleRole(role)}
+                />
+                <Label className="capitalize">{role}</Label>
+              </div>
+            ))}
+          </div>
 
-       {/* Filters */}
-       <div className="flex flex-wrap items-center justify-between gap-4">
-         <div className="flex items-center gap-6">
-           {(["staff", "student", "organizer"] as Role[]).map((role) => (
-             <div key={role} className="flex items-center gap-2">
-               <Checkbox
-                 checked={roles.includes(role)}
-                 onCheckedChange={() => toggleRole(role)}
-               />
-               <Label className="capitalize">{role}</Label>
-             </div>
-           ))}
-         </div>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="tìm kiếm..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
 
-         <div className="relative w-64">
-           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-           <Input
-             className="pl-9"
-             placeholder="tìm kiếm..."
-             value={search}
-             onChange={(e) => setSearch(e.target.value)}
-           />
-         </div>
-       </div>
+        {/* Table */}
+        {loading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tên</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Số điện thoại</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Tạo lúc</TableHead>
+                </TableRow>
+              </TableHeader>
 
-       {/* Table */}
-       {loading ? (
-         <Skeleton className="h-64 w-full" />
-       ) : (
-         <div className="border rounded-lg">
-           <Table>
-             <TableHeader>
-               <TableRow>
-                 <TableHead>Tên</TableHead>
-                 <TableHead>Email</TableHead>
-                 <TableHead>Số điện thoại</TableHead>
-                 <TableHead>Role</TableHead>
-                 <TableHead>Trạng thái</TableHead>
-                 <TableHead>Tạo lúc</TableHead>
-               </TableRow>
-             </TableHeader>
+              <TableBody>
+                {filteredUsers.map((u) => (
+                  <TableRow
+                    key={u.userId}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setSelectedRole(u.roleId as Role);
+                    }}
+                  >
+                    <TableCell className="font-medium">{u.name}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{u.roleName}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          u.status === "active" ? "default" : "secondary"
+                        }
+                      >
+                        {u.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-             <TableBody>
-               {filteredUsers.map((u) => (
-                 <TableRow
-                   key={u.userId}
-                   className="cursor-pointer hover:bg-muted/50"
-                   onClick={() => {
-                     setSelectedUser(u);
-                     setSelectedRole(u.roleId as Role);
-                   }}
-                 >
-                   <TableCell className="font-medium">{u.name}</TableCell>
-                   <TableCell>{u.email}</TableCell>
-                   <TableCell>{u.phone || "—"}</TableCell>
-                   <TableCell>
-                     <Badge variant="outline">{u.roleName}</Badge>
-                   </TableCell>
-                   <TableCell>
-                     <Badge
-                       variant={u.status === "active" ? "default" : "secondary"}
-                     >
-                       {u.status}
-                     </Badge>
-                   </TableCell>
-                   <TableCell>
-                     {new Date(u.createdAt).toLocaleDateString()}
-                   </TableCell>
-                 </TableRow>
-               ))}
-             </TableBody>
-           </Table>
-         </div>
-       )}
+        {/* CREATE USER */}
+        <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Tạo tài khoản người dùng</DialogTitle>
+            </DialogHeader>
 
-       {/* ================= CREATE USER ================= */}
-       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
-         <DialogContent className="max-w-xl">
-           <DialogHeader>
-             <DialogTitle>Tạo tài khoản người dùng</DialogTitle>
-           </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label>Tên *</Label>
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </div>
 
-           <div className="space-y-4">
-             <div className="space-y-1">
-               <Label>Tên *</Label>
-               <Input
-                 value={newName}
-                 onChange={(e) => setNewName(e.target.value)}
-               />
-             </div>
+              <div className="space-y-1">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </div>
 
-             <div className="space-y-1">
-               <Label>Email *</Label>
-               <Input
-                 type="email"
-                 value={newEmail}
-                 onChange={(e) => setNewEmail(e.target.value)}
-               />
-             </div>
+              <div className="space-y-1">
+                <Label>Mật khẩu *</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
 
-             <div className="space-y-1">
-               <Label>Mật khẩu *</Label>
-               <Input
-                 type="password"
-                 value={newPassword}
-                 onChange={(e) => setNewPassword(e.target.value)}
-               />
-             </div>
+              <div className="space-y-1">
+                <Label>Số điện thoại</Label>
+                <Input
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
+              </div>
 
-             <div className="space-y-1">
-               <Label>Số điện thoại</Label>
-               <Input
-                 value={newPhone}
-                 onChange={(e) => setNewPhone(e.target.value)}
-               />
-             </div>
+              <div className="space-y-1">
+                <Label>Role *</Label>
+                <Select
+                  value={newRole}
+                  onValueChange={(v) => setNewRole(v as Role)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="organizer">Organizer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-             <div className="space-y-1">
-               <Label>Role *</Label>
-               <Select
-                 value={newRole}
-                 onValueChange={(v) => setNewRole(v as Role)}
-               >
-                 <SelectTrigger>
-                   <SelectValue placeholder="Chọn Role" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="student">Student</SelectItem>
-                   <SelectItem value="staff">Staff</SelectItem>
-                   <SelectItem value="organizer">Organizer</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="outline" onClick={() => setOpenCreate(false)}>
+                  Hủy
+                </Button>
+                <Button onClick={handleCreateUser} disabled={creating}>
+                  {creating ? "Creating..." : "Tạo"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-             <div className="flex justify-end gap-3 pt-4">
-               <Button variant="outline" onClick={() => setOpenCreate(false)}>
-                 Hủy
-               </Button>
-               <Button onClick={handleCreateUser} disabled={creating}>
-                 {creating ? "Creating..." : "Tạo "}
-               </Button>
-             </div>
-           </div>
-         </DialogContent>
-       </Dialog>
+        {/* EDIT USER */}
+        <Dialog
+          open={!!selectedUser}
+          onOpenChange={() => setSelectedUser(null)}
+        >
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+            </DialogHeader>
 
-       {/* ================= EDIT USER ROLE ================= */}
-       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-         <DialogContent className="max-w-xl">
-           <DialogHeader>
-             <DialogTitle>Chỉnh sửa người dùng </DialogTitle>
-           </DialogHeader>
+            {selectedUser && (
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <Label>Tên</Label>
+                  <Input value={selectedUser.name} disabled />
+                </div>
 
-           {selectedUser && (
-             <div className="space-y-5">
-               {/* NAME */}
-               <div className="space-y-1">
-                 <Label>Tên</Label>
-                 <Input value={selectedUser.name} disabled />
-               </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input value={selectedUser.email} disabled />
+                </div>
 
-               {/* EMAIL */}
-               <div className="space-y-1">
-                 <Label>Email</Label>
-                 <Input value={selectedUser.email} disabled />
-               </div>
+                <div className="space-y-1">
+                  <Label>Số điện thoại</Label>
+                  <Input value={selectedUser.phone || "—"} disabled />
+                </div>
 
-               {/* PHONE */}
-               <div className="space-y-1">
-                 <Label>Số điện thoại</Label>
-                 <Input value={selectedUser.phone || "—"} disabled />
-               </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label>Role</Label>
+                    <Select
+                      value={selectedRole}
+                      onValueChange={(v) => setSelectedRole(v as Role)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="organizer">Organizer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-               {/* ROLE + STATUS */}
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1">
-                   <Label>Role</Label>
-                   <Select
-                     value={selectedRole}
-                     onValueChange={(v) => setSelectedRole(v as Role)}
-                   >
-                     <SelectTrigger>
-                       <SelectValue />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="student">Student</SelectItem>
-                       <SelectItem value="staff">Staff</SelectItem>
-                       <SelectItem value="organizer">Organizer</SelectItem>
-                     </SelectContent>
-                   </Select>
-                 </div>
+                  <div className="space-y-1">
+                    <Label>Trạng thái</Label>
+                    <Input value={selectedUser.status} disabled />
+                  </div>
+                </div>
 
-                 <div className="space-y-1">
-                   <Label>Trạng Thái</Label>
-                   <Input value={selectedUser.status} disabled />
-                 </div>
-               </div>
+                <div className="space-y-1">
+                  <Label>Tạo lúc</Label>
+                  <Input
+                    value={new Date(selectedUser.createdAt).toLocaleString()}
+                    disabled
+                  />
+                </div>
 
-               {/* CREATED AT */}
-               <div className="space-y-1">
-                 <Label>Tạo lúc </Label>
-                 <Input
-                   value={new Date(selectedUser.createdAt).toLocaleString()}
-                   disabled
-                 />
-               </div>
-
-               {/* FOOTER */}
-               <div className="flex justify-end gap-3 pt-4">
-                 <Button
-                   variant="outline"
-                   onClick={() => setSelectedUser(null)}
-                 >
-                   Hủy
-                 </Button>
-                 <Button onClick={handleUpdateRole} disabled={updating}>
-                   {updating ? "Saving..." : "Lưu thay đổi"}
-                 </Button>
-               </div>
-             </div>
-           )}
-         </DialogContent>
-       </Dialog>
-     </main>
-   </>
- );
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedUser(null)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button onClick={handleUpdateRole} disabled={updating}>
+                    {updating ? "Saving..." : "Lưu thay đổi"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </main>
+    </>
+  );
 }

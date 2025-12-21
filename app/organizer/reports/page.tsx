@@ -6,7 +6,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, TrendingUp, Users, Calendar, FileSpreadsheet, FileText, Filter, XCircle, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Download, TrendingUp, Users, Calendar, FileSpreadsheet, FileText, Filter, XCircle, AlertCircle, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -32,7 +33,8 @@ import {
 
 
 export default function ReportsPage() {
-  const [timeRange, setTimeRange] = useState("6months")
+  const router = useRouter()
+  const [timeRange, setTimeRange] = useState("all")
   const [fromDate, setFromDate] = useState<string>("")
   const [toDate, setToDate] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
@@ -67,32 +69,41 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchMonthlyData = async () => {
       try {
-        // Calculate date range based on timeRange
-        const today = new Date()
-        const toDateCalc = today.toISOString().split('T')[0] // YYYY-MM-DD
+        // Xây dựng params cho API
+        let params: { fromDate?: string; toDate?: string } = {}
         
-        let fromDateCalc = new Date()
-        switch (timeRange) {
-          case "7days":
-            fromDateCalc.setDate(today.getDate() - 7)
-            break
-          case "30days":
-            fromDateCalc.setDate(today.getDate() - 30)
-            break
-          case "6months":
-            fromDateCalc.setMonth(today.getMonth() - 6)
-            break
-          case "1year":
-            fromDateCalc.setFullYear(today.getFullYear() - 1)
-            break
-          default:
-            fromDateCalc.setMonth(today.getMonth() - 6)
+        // Nếu user đã chọn ngày cụ thể
+        if (fromDate) params.fromDate = fromDate
+        if (toDate) params.toDate = toDate
+        
+        // Chỉ tính toán ngày khi timeRange không phải "all" VÀ user chưa chọn ngày
+        if (timeRange !== "all" && !fromDate && !toDate) {
+          const today = new Date()
+          const fromDateObj = new Date()
+          
+          switch (timeRange) {
+            case "7days":
+              fromDateObj.setDate(today.getDate() - 7)
+              break
+            case "30days":
+              fromDateObj.setDate(today.getDate() - 30)
+              break
+            case "6months":
+              fromDateObj.setMonth(today.getMonth() - 6)
+              break
+            case "1year":
+              fromDateObj.setFullYear(today.getFullYear() - 1)
+              break
+          }
+          
+          params.fromDate = fromDateObj.toISOString().split('T')[0]
+          params.toDate = today.toISOString().split('T')[0]
         }
         
-        const response = await reportService.getMonthlyReport({
-          fromDate: fromDate || fromDateCalc.toISOString().split('T')[0],
-          toDate: toDate || toDateCalc
-        })
+        // Gọi API - nếu params rỗng thì lấy tất cả
+        const response = await reportService.getMonthlyReport(
+          Object.keys(params).length > 0 ? params : undefined
+        )
         if (response.success && response.data) {
           setMonthlyData(response.data)
         }
@@ -109,32 +120,41 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchEventListReport = async () => {
       try {
-        // Calculate date range based on timeRange
-        const today = new Date()
-        const toDateCalc = toDate || today.toISOString().split('T')[0] // YYYY-MM-DD
+        // Xây dựng params cho API
+        let params: { fromDate?: string; toDate?: string } = {}
         
-        let fromDateCalc = new Date(fromDate || today)
-        switch (timeRange) {
-          case "7days":
-            fromDateCalc.setDate(today.getDate() - 7)
-            break
-          case "30days":
-            fromDateCalc.setDate(today.getDate() - 30)
-            break
-          case "6months":
-            fromDateCalc.setMonth(today.getMonth() - 6)
-            break
-          case "1year":
-            fromDateCalc.setFullYear(today.getFullYear() - 1)
-            break
-          default:
-            fromDateCalc.setMonth(today.getMonth() - 6)
+        // Nếu user đã chọn ngày cụ thể
+        if (fromDate) params.fromDate = fromDate
+        if (toDate) params.toDate = toDate
+        
+        // Chỉ tính toán ngày khi timeRange không phải "all" VÀ user chưa chọn ngày
+        if (timeRange !== "all" && !fromDate && !toDate) {
+          const today = new Date()
+          const fromDateObj = new Date()
+          
+          switch (timeRange) {
+            case "7days":
+              fromDateObj.setDate(today.getDate() - 7)
+              break
+            case "30days":
+              fromDateObj.setDate(today.getDate() - 30)
+              break
+            case "6months":
+              fromDateObj.setMonth(today.getMonth() - 6)
+              break
+            case "1year":
+              fromDateObj.setFullYear(today.getFullYear() - 1)
+              break
+          }
+          
+          params.fromDate = fromDateObj.toISOString().split('T')[0]
+          params.toDate = today.toISOString().split('T')[0]
         }
         
-        const response = await reportService.getEventListReport({
-          fromDate: fromDate || fromDateCalc.toISOString().split('T')[0],
-          toDate: toDateCalc
-        })
+        // Gọi API - nếu params rỗng thì lấy tất cả
+        const response = await reportService.getEventListReport(
+          Object.keys(params).length > 0 ? params : undefined
+        )
         if (response.success && response.data) {
           setEventReportData(response.data)
         }
@@ -147,6 +167,20 @@ export default function ReportsPage() {
 
     fetchEventListReport()
   }, [timeRange, fromDate, toDate])
+
+  /**
+   * HÀM CHUYỂN ĐẾN TRANG CHI TIẾT NGƯỜI THAM DỰ
+   * 
+   * Navigate đến: /organizer/reports/{eventId}?eventName={eventName}
+   * Trang đích sẽ gọi API: GET /api/events/{eventId}/tickets
+   */
+  const handleViewDetails = (event: EventReportItem) => {
+    if (!event.eventId) {
+      toast.error("Không thể lấy chi tiết: thiếu thông tin sự kiện (eventId). Vui lòng liên hệ admin.")
+      return
+    }
+    router.push(`/organizer/reports/${event.eventId}?eventName=${encodeURIComponent(event.eventName)}`)
+  }
 
   // Calculate stats from summary data
   const stats = summaryData
@@ -252,7 +286,7 @@ export default function ReportsPage() {
                 }}
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Clear
+                Làm sạch
               </Button>
             </div>
           </div>
@@ -364,9 +398,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-base">Xu hướng đăng ký & tham dự</CardTitle>
                 <CardDescription className="text-xs">So sánh theo tháng</CardDescription>
               </div>
-              <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4" />
-              </Button>
+              
             </div>
           </CardHeader>
           <CardContent>
@@ -422,20 +454,19 @@ export default function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">EVENT NAME</TableHead>
-                  <TableHead className="text-xs">DATE</TableHead>
-                  <TableHead className="text-xs text-right">REGISTERED</TableHead>
-                  <TableHead className="text-xs text-right">PARTICIPATED</TableHead>
-                  <TableHead className="text-xs text-right">NOT PARTICIPATED</TableHead>
-                  <TableHead className="text-xs text-right">ABANDONED</TableHead>
-                  {/* <TableHead className="text-xs text-right">THAM GIA %</TableHead>
-                  <TableHead className="text-xs text-right">Không tham gia %</TableHead> */}
+                  <TableHead className="text-xs">Tên sự kiện</TableHead>
+                  <TableHead className="text-xs">Ngày</TableHead>
+                  <TableHead className="text-xs text-right">Người đăng kí</TableHead>
+                  <TableHead className="text-xs text-right">Người tham gia</TableHead>
+                  <TableHead className="text-xs text-right">Người không tham gia</TableHead>
+                  <TableHead className="text-xs text-right">Vắng</TableHead>
+                  <TableHead className="text-xs text-center">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {eventReportData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Không có dữ liệu sự kiện
                     </TableCell>
                   </TableRow>
@@ -465,8 +496,18 @@ export default function ReportsPage() {
                         <TableCell className="text-sm text-right">{event.participatedCount}</TableCell>
                         <TableCell className="text-sm text-right">{event.notParticipatedCount}</TableCell>
                         <TableCell className="text-sm text-right">{event.abandonedCount}</TableCell>
-                        {/* <TableCell className="text-sm text-right">{rate}%</TableCell>
-                        <TableCell className="text-sm text-right">{event.notParticipatedPercent ?? 0}%</TableCell> */}
+                        <TableCell className="text-sm text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(event)}
+                            disabled={!event.eventId}
+                            className="h-8 text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     )
                   })
@@ -475,8 +516,6 @@ export default function ReportsPage() {
             </Table>
           </CardContent>
         </Card>
-
-        
       </main>
     </>
   )
