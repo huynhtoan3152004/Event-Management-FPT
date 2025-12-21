@@ -55,7 +55,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="min-h-screen pt-24 pb-16 bg-gradient-to-br from-accent/30 via-background to-secondary/20">
+    <section className="min-h-[70vh] pt-24 pb-12 bg-gradient-to-br from-accent/30 via-background to-secondary/20">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* LEFT TEXT */}

@@ -79,7 +79,7 @@ export function OrganizerSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       {/* Header */}
       <SidebarHeader className="border-b p-3">
-        <Link href="/organizer/events" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <span className="text-xs font-bold text-foreground">FPU</span>
           </div>

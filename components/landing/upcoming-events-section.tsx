@@ -86,28 +86,23 @@ export function UpcomingEventsSection() {
   };
 
   return (
-    <section ref={sectionRef} className="py-20 bg-accent/20">
+    <section ref={sectionRef} className="py-12 bg-accent/10">
       <div className="container mx-auto px-4">
-        {/* HEADER */}
-        <div className="text-center mb-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            FPTU Event Hub
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            Discover, join, and engage with campus life.
-          </p>
-        </div>
-
         {/* SECTION TITLE */}
-        <div className="flex items-center justify-between mb-8 mt-12">
-          <h3 className="text-xl md:text-2xl font-semibold text-foreground">
-            Sự kiện sắp tới từ các câu lạc bộ
-          </h3>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              Sự kiện sắp tới
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Khám phá và tham gia các sự kiện từ câu lạc bộ
+            </p>
+          </div>
           <Link
             href="/events"
             className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-medium"
           >
-            Xem tất cả sự kiện
+            Xem tất cả
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
