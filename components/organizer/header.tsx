@@ -47,12 +47,7 @@ export function OrganizerHeader({ title = "Dashboard" }: OrganizerHeaderProps) {
 
       {/* Right Section */}
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Bell className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <HelpCircle className="h-4 w-4" />
-        </Button>
+       
 
         {/* User Menu */}
         {isLoading ? (
