@@ -4,7 +4,7 @@
    ============================================ */
 
 "use client";
-
+import { useRouter } from "next/navigation";
 import type React from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { authService } from "@/lib/services/auth.service";
@@ -29,7 +29,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const router = useRouter();
   // 🔥 LẤY redirect từ URL
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || null;
@@ -39,20 +39,27 @@ const handleLoginGoogle = async (idToken: string) => {
   try {
     const res = await authService.loginWithGoogle(idToken);
 
-    // 🔥 LƯU TOKEN + USER
+    // Lưu token + user
     authService.saveAuthData(res);
 
-    // 🔁 Redirect theo role (đơn giản trước)
-    if (res.roleName === "Organizer") {
-      window.location.href = "/organizer/events";
-    } else {
-      window.location.href = "/";
+    // 🔥 REDIRECT GIỐNG LOGIN THƯỜNG
+    const roleId = res.roleId?.toLowerCase();
+
+    let targetUrl = "/dashboard";
+    switch (roleId) {
+      case "student":
+        targetUrl = "/dashboard/events";
+        break;
+      
     }
+
+    window.location.href = targetUrl;
   } catch (error) {
     console.error("Login Google error:", error);
     alert("Đăng nhập Google thất bại");
   }
 };
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

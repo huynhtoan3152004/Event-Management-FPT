@@ -75,18 +75,18 @@ export default function StudentDashboardPage() {
     })
   }, [tickets])
 
-  const recentAttendance = useMemo(() => {
-    // Dùng vé đã check-in (status used) làm lịch sử tham dự
-    return tickets
-      .filter((t) => t.status === "used")
-      .slice(0, 5)
-      .map((t) => ({
-        id: t.ticketId,
-        eventTitle: t.eventTitle || "Sự kiện",
-        date: new Date(t.eventDate).toLocaleDateString("vi-VN"),
-        status: "attended" as const,
-      }))
-  }, [tickets])
+  // const recentAttendance = useMemo(() => {
+  //   // Dùng vé đã check-in (status used) làm lịch sử tham dự
+  //   return tickets
+  //     .filter((t) => t.status === "used")
+  //     .slice(0, 5)
+  //     .map((t) => ({
+  //       id: t.ticketId,
+  //       eventTitle: t.eventTitle || "Sự kiện",
+  //       date: new Date(t.eventDate).toLocaleDateString("vi-VN"),
+  //       status: "attended" as const,
+  //     }))
+  // }, [tickets])
 
   const registeredEventIds = useMemo(() => {
     const ids = new Set<string>()
@@ -166,7 +166,7 @@ export default function StudentDashboardPage() {
           {/* Today's Ticket */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{"Today's Ticket"}</CardTitle>
+              <CardTitle className="text-lg">{"Vé của sự kiện đã diễn ra"}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -206,49 +206,6 @@ export default function StudentDashboardPage() {
             </CardContent>
           </Card>
 
-        {/* Recent Attendance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Attendance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Đang tải...</span>
-              </div>
-            ) : recentAttendance.length === 0 ? (
-              <div className="text-muted-foreground">Chưa có lịch sử tham dự</div>
-            ) : (
-              <div className="space-y-4 mb-5">
-                {recentAttendance.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          record.status === "attended" ? "bg-success/10" : "bg-destructive/10"
-                        }`}
-                      >
-                        {record.status === "attended" ? (
-                          <span className="text-success text-lg">✓</span>
-                        ) : (
-                          <span className="text-destructive text-lg">✗</span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{record.eventTitle}</p>
-                        <p className="text-xs text-muted-foreground">{record.date}</p>
-                      </div>
-                    </div>
-                    <Badge variant={record.status === "attended" ? "default" : "destructive"} className="capitalize">
-                      {record.status === "attended" ? "Attended" : "Missed"}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

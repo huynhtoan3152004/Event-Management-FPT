@@ -92,18 +92,18 @@ type VenueFormData = Partial<Venue> & {
 };
 const FACILITY_MAP: Record<string, { label: string; icon: React.ElementType }> =
   {
-    projector: { label: "Projector", icon: Tv },
-    sound: { label: "Sound System", icon: Mic2 },
-    ac: { label: "Air Conditioning", icon: Wind },
+    projector: { label: "Máy chiếu", icon: Tv },
+    sound: { label: "Hệ thống âm thanh", icon: Mic2 },
+    ac: { label: "Điều hòa không khí", icon: Wind },
     wifi: { label: "WiFi", icon: Wifi },
   };
 /* -------------------------------------------
    FACILITIES CONFIG (USE ID)
 ------------------------------------------- */
 const FACILITIES = [
-  { id: "projector", label: "Projector", icon: Tv },
-  { id: "sound", label: "Sound System", icon: Mic2 },
-  { id: "ac", label: "Air Conditioning", icon: Wind },
+  { id: "projector", label: "Máy chiếu", icon: Tv },
+  { id: "sound", label: "Hệ thống âm thanh", icon: Mic2 },
+  { id: "ac", label: "Điều hòa không khí", icon: Wind },
   { id: "wifi", label: "WiFi", icon: Wifi },
 ];
 
@@ -419,8 +419,8 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
 
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Add New Venue</DialogTitle>
-                <DialogDescription>Enter venue information.</DialogDescription>
+                <DialogTitle>Thêm hội trường mới</DialogTitle>
+                <DialogDescription>Nhập thông tin của hội trường.</DialogDescription>
               </DialogHeader>
 
               <VenueForm
@@ -434,9 +434,9 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
                   variant="outline"
                   onClick={() => setIsCreateOpen(false)}
                 >
-                  Cancel
+                  Hủy
                 </Button>
-                <Button onClick={handleCreate}>Create</Button>
+                <Button onClick={handleCreate}>Tạo</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -469,7 +469,7 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
 
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => openEditDialog(venue)}>
-                        <Edit className="h-4 w-4 mr-2" /> Edit
+                        <Edit className="h-4 w-4 mr-2" /> Sửa
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openSeatMap(venue)}>
                         <Users className="h-4 w-4 mr-2" />
@@ -479,7 +479,7 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
                         className="text-destructive"
                         onClick={() => setDeletingVenue(venue)}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        <Trash2 className="h-4 w-4 mr-2" /> Xóa
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -515,7 +515,7 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
                 <div className="flex justify-between items-center text-sm pr-3 mb-2">
                   <span className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    Capacity: {venue.capacity}
+                    Sức chứa: {venue.capacity}
                   </span>
 
                   <Badge className="px-3 py-1 rounded-md">
@@ -538,7 +538,7 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit Venue</DialogTitle>
+              <DialogTitle>Chỉnh sửa hội trường</DialogTitle>
             </DialogHeader>
 
             <VenueForm
@@ -606,21 +606,19 @@ const [loadingSeatMap, setLoadingSeatMap] = useState(false);
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                Delete venue "{deletingVenue?.name}"?
+                Bạn xác nhận muốn xóa "{deletingVenue?.name}"?
               </AlertDialogTitle>
 
-              <AlertDialogDescription>
-                This action cannot be undone.
-              </AlertDialogDescription>
+             
             </AlertDialogHeader>
 
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>Hủy</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground"
                 onClick={handleDelete}
               >
-                Delete
+               Xóa
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -647,7 +645,7 @@ function VenueForm({
     <div className="grid gap-4 py-4">
       {/* NAME */}
       <div>
-        <Label>Name *</Label>
+        <Label>Tên*</Label>
         <Input
           value={formData.name || ""}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -656,7 +654,7 @@ function VenueForm({
 
       {/* ADDRESS */}
       <div>
-        <Label>Address *</Label>
+        <Label>Địa Chỉ *</Label>
         <Input
           value={formData.address || ""}
           onChange={(e) =>
@@ -668,12 +666,12 @@ function VenueForm({
       {/* CAPACITY + STATUS */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Capacity</Label>
+          <Label>Sức chứa</Label>
           <Input type="number" value={formData.capacity || 0} disabled />
         </div>
 
         <div>
-          <Label>Status</Label>
+          <Label>Trạng thái</Label>
           <Select
             value={formData.status || "available"}
             onValueChange={(v) =>
@@ -685,9 +683,9 @@ function VenueForm({
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="booked">Booked</SelectItem>
+              <SelectItem value="available">Còn trống</SelectItem>
+              <SelectItem value="maintenance">Đang bảo trì</SelectItem>
+              <SelectItem value="booked">Đã được đặt</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -697,7 +695,7 @@ function VenueForm({
       <div className="grid grid-cols-2 gap-4">
         {/* MAX ROWS */}
         <div>
-          <Label>Max Rows</Label>
+          <Label>Số hàng ghế tối đa</Label>
           <Input
             type="number"
             min={0}
@@ -722,7 +720,7 @@ function VenueForm({
 
         {/* SEATS PER ROW */}
         <div>
-          <Label>Seats Per Row</Label>
+          <Label>Số ghế mỗi hàng</Label>
           <Input
             type="number"
             min={0}
@@ -748,7 +746,7 @@ function VenueForm({
 
       {/* FACILITIES */}
       <div>
-        <Label>Facilities</Label>
+        <Label>Sức chứa</Label>
 
         <div className="grid grid-cols-2 gap-2">
           {FACILITIES.map((f) => (
@@ -768,7 +766,7 @@ function VenueForm({
 
       {/* DESCRIPTION */}
       <div>
-        <Label>Description</Label>
+        <Label>Diễn tả</Label>
         <Textarea
           value={formData.description || ""}
           onChange={(e) =>

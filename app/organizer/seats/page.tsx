@@ -301,9 +301,7 @@ const eventIdFromUrl = searchParams.get("eventId");
                   ? events.find((e) => e.eventId === selectedEvent)?.title
                   : "Seat Map"}
               </CardTitle>
-              <CardDescription>
-                Click on a seat to view details or change status
-              </CardDescription>
+              <CardDescription>Click vào ghế để xem chi tiết</CardDescription>
             </CardHeader>
 
             <CardContent className="pb-6">
@@ -348,19 +346,19 @@ const eventIdFromUrl = searchParams.get("eventId");
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded bg-success/20 border border-success/30" />
                       <span className="text-xs">
-                        Available ({seatCounts.available})
+                        Còn trống ({seatCounts.available})
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
                       <span className="text-xs">
-                        Reserved ({seatCounts.reserved})
+                        Đã đặt  ({seatCounts.reserved})
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded bg-primary/20 border border-primary/30" />
                       <span className="text-xs">
-                        Occupied ({seatCounts.occupied})
+                        Đã có người ngồi ({seatCounts.occupied})
                       </span>
                     </div>
                   </div>
@@ -374,31 +372,33 @@ const eventIdFromUrl = searchParams.get("eventId");
             {/* Seat Statistics */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Seat Statistics</CardTitle>
+                <CardTitle className="text-sm">Thống kê chỗ ngồi</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-2 pb-6">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Seats</span>
+                  <span className="text-muted-foreground">Tổng chỗ ngồi </span>
                   <span className="font-medium">{seats.length}</span>
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Available</span>
+                  <span className="text-muted-foreground">Còn trống</span>
                   <span className="font-medium text-success">
                     {seatCounts.available}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Reserved</span>
+                  <span className="text-muted-foreground">Đã Đặt</span>
                   <span className="font-medium text-warning">
                     {seatCounts.reserved}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Occupied</span>
+                  <span className="text-muted-foreground">
+                    Đã có người ngồi
+                  </span>
                   <span className="font-medium text-primary">
                     {seatCounts.occupied}
                   </span>
@@ -408,13 +408,13 @@ const eventIdFromUrl = searchParams.get("eventId");
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Seat Details</CardTitle>
+                <CardTitle className="text-sm">Chi tiết ghế</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-3 pb-6">
                 {!selectedSeat ? (
                   <div className="text-center text-muted-foreground text-sm">
-                    Select a seat to view details
+                    Chọn ghế để xem chi tiết
                   </div>
                 ) : (
                   <>
@@ -450,7 +450,6 @@ const eventIdFromUrl = searchParams.get("eventId");
                             {selectedSeat.occupant.studentCode || "N/A"}
                           </span>
                         </div>
-
 
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
