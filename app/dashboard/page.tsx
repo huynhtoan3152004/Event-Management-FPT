@@ -166,7 +166,7 @@ export default function StudentDashboardPage() {
           {/* Today's Ticket */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{"Today's Ticket"}</CardTitle>
+              <CardTitle className="text-lg">{"Vé của sự kiện đã diễn ra"}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -206,8 +206,6 @@ export default function StudentDashboardPage() {
             </CardContent>
           </Card>
 
-        
-        
       </div>
     </div>
   )
