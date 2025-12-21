@@ -11,18 +11,36 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCardHover } from "@/hooks/use-gsap";
+import { useUser } from "@/hooks/use-user";
 import type { Event } from "@/types";
 
+// Cho phép cả event từ API (eventId) và event từ types (id)
+type EventCardEvent = Partial<Event> & {
+  id?: string;
+  eventId?: string;
+  title: string;
+  date: string;
+  time?: string;
+  clubName?: string;
+  imageUrl?: string;
+};
+
 interface EventCardProps {
-  event: Event;
+  event: EventCardEvent;
   variant?: "default" | "compact" | "horizontal";
 }
 
 export function EventCard({ event, variant = "default" }: EventCardProps) {
   const cardRef = useCardHover<HTMLDivElement>();
+  const { isAuthenticated } = useUser();
 
-  // Redirect URL để quay về đúng event sau khi login
-  const redirectUrl = `/login?redirect=/events/${event.id}`;
+  // Lấy ID từ event.id hoặc event.eventId (từ API)
+  const eventId = event.id || event.eventId;
+
+  // Nếu đã đăng nhập thì đi thẳng đến trang chi tiết sự kiện, nếu chưa thì qua login
+  const redirectUrl = isAuthenticated 
+    ? `/dashboard/events/${eventId}`
+    : `/login?redirect=/dashboard/events/${eventId}`;
 
   /* ========= COMPACT CARD ========= */
   if (variant === "compact") {

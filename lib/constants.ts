@@ -19,7 +19,6 @@ import type {
 // Navigation links for public pages
 export const PUBLIC_NAV_LINKS = [
   { label: "Sự kiện", href: "/events" },
-  { label: "Giới thiệu", href: "/about" },
 ]
 
 export const MOCK_SPEAKERS: Speaker[] = [

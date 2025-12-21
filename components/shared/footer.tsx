@@ -4,20 +4,18 @@
    ============================================ */
 
 import Link from "next/link"
-import { Facebook, Instagram, Linkedin, Youtube, Calendar, Home, Users, Newspaper } from "lucide-react"
+import { Facebook, Instagram, Linkedin, Youtube, Calendar, Home } from "lucide-react"
 
 const discoverLinks = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Events Calendar", href: "/events", icon: Calendar },
-  { label: "Student Clubs", href: "/clubs", icon: Users },
-  { label: "News & Blog", href: "/blog", icon: Newspaper },
+  { label: "Trang chủ", href: "/", icon: Home },
+  { label: "Lịch sự kiện", href: "/login?redirect=/dashboard/events", icon: Calendar },
 ]
 
 const supportLinks = [
-  { label: "Contact Us", href: "/contact" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
+  { label: "Liên hệ", href: "/contact" },
+  { label: "Câu hỏi thường gặp", href: "/faq" },
+  { label: "Chính sách bảo mật", href: "/privacy" },
+  { label: "Điều khoản dịch vụ", href: "/terms" },
 ]
 
 const socialLinks = [
@@ -40,7 +38,7 @@ export function Footer() {
               <h3 className="text-xl font-bold">FPTU Events</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Connecting students with campus life. Discover clubs, join workshops, and never miss an event happening at FPT University.
+              Kết nối sinh viên với đời sống học đường. Khám phá câu lạc bộ, tham gia workshop và không bỏ lỡ sự kiện nào tại Đại học FPT.
             </p>
             
             {/* Social Links */}
@@ -63,7 +61,7 @@ export function Footer() {
           {/* Discover Section */}
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">
-              DISCOVER
+              KHÁM PHÁ
             </h4>
             <nav className="space-y-3">
               {discoverLinks.map((link) => (
@@ -82,7 +80,7 @@ export function Footer() {
           {/* Support Section */}
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">
-              SUPPORT
+              HỖ TRỢ
             </h4>
             <nav className="space-y-3">
               {supportLinks.map((link) => (
@@ -101,7 +99,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t">
           <p className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} FPTU Event System. All Rights Reserved.
+            © {new Date().getFullYear()} Hệ thống sự kiện FPTU. Bảo lưu mọi quyền.
           </p>
         </div>
       </div>

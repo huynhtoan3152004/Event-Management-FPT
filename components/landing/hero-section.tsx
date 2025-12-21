@@ -8,10 +8,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useHeroAnimation } from "@/hooks/use-gsap";
+import { useUser } from "@/hooks/use-user";
 import { eventService, EventListItem } from "@/lib/services/event.service";
 
 export function HeroSection() {
   const { titleRef, subtitleRef, ctaRef } = useHeroAnimation();
+  const { isAuthenticated } = useUser();
 
   const [featuredEvents, setFeaturedEvents] = useState<EventListItem[]>([]);
 
@@ -83,16 +85,6 @@ export function HeroSection() {
                   Khám phá sự kiện
                 </Button>
               </Link>
-
-              <Link href="/about">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="px-8 py-6 rounded-full"
-                >
-                  Tìm hiểu thêm
-                </Button>
-              </Link>
             </div>
           </div>
 
@@ -107,7 +99,10 @@ export function HeroSection() {
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {featuredEvents.map((event) => {
-                  const redirectUrl = `/login?redirect=/events/${event.eventId}`;
+                  // Nếu đã đăng nhập thì đi thẳng đến trang chi tiết sự kiện
+                  const redirectUrl = isAuthenticated 
+                    ? `/dashboard/events/${event.eventId}`
+                    : `/login?redirect=/dashboard/events/${event.eventId}`;
 
                   return (
                     <div
