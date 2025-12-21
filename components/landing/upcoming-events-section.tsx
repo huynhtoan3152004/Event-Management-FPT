@@ -93,9 +93,6 @@ export function UpcomingEventsSection() {
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             FPTU Event Hub
           </h2>
-          <p className="text-muted-foreground mt-2">
-            Discover, join, and engage with campus life.
-          </p>
         </div>
 
         {/* SECTION TITLE */}

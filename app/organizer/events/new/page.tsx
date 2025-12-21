@@ -785,7 +785,7 @@ if (payload.registrationEnd) {
               </CardHeader>
               <CardContent className="grid md:grid-cols-3 gap-5 p-6">
                 <div className="space-y-2">
-                  <Label htmlFor="registrationStart">Registration Start</Label>
+                  <Label htmlFor="registrationStart">Thời gian bắt đầu đăng kí</Label>
                   <Input
                     id="registrationStart"
                     name="registrationStart"
@@ -806,7 +806,7 @@ if (payload.registrationEnd) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="registrationEnd">Registration End</Label>
+                  <Label htmlFor="registrationEnd">Thời gian kết thúc đăng kí</Label>
                   <Input
                     id="registrationEnd"
                     name="registrationEnd"

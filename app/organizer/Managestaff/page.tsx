@@ -173,7 +173,7 @@ export default function ManageUserPage() {
 
          <Button onClick={() => setOpenCreate(true)}>
            <Plus className="h-4 w-4 mr-2" />
-           Create User
+          Tạo tài khoản người dùng 
          </Button>
        </div>
 
@@ -195,7 +195,7 @@ export default function ManageUserPage() {
            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
            <Input
              className="pl-9"
-             placeholder="Search by name..."
+             placeholder="tìm kiếm..."
              value={search}
              onChange={(e) => setSearch(e.target.value)}
            />
@@ -210,12 +210,12 @@ export default function ManageUserPage() {
            <Table>
              <TableHeader>
                <TableRow>
-                 <TableHead>Name</TableHead>
+                 <TableHead>Tên</TableHead>
                  <TableHead>Email</TableHead>
-                 <TableHead>Phone</TableHead>
+                 <TableHead>Số điện thoại</TableHead>
                  <TableHead>Role</TableHead>
-                 <TableHead>Status</TableHead>
-                 <TableHead>Created At</TableHead>
+                 <TableHead>Trạng thái</TableHead>
+                 <TableHead>Tạo lúc</TableHead>
                </TableRow>
              </TableHeader>
 
@@ -256,12 +256,12 @@ export default function ManageUserPage() {
        <Dialog open={openCreate} onOpenChange={setOpenCreate}>
          <DialogContent className="max-w-xl">
            <DialogHeader>
-             <DialogTitle>Create User</DialogTitle>
+             <DialogTitle>Tạo tài khoản người dùng</DialogTitle>
            </DialogHeader>
 
            <div className="space-y-4">
              <div className="space-y-1">
-               <Label>Name *</Label>
+               <Label>Tên *</Label>
                <Input
                  value={newName}
                  onChange={(e) => setNewName(e.target.value)}
@@ -278,7 +278,7 @@ export default function ManageUserPage() {
              </div>
 
              <div className="space-y-1">
-               <Label>Password *</Label>
+               <Label>Mật khẩu *</Label>
                <Input
                  type="password"
                  value={newPassword}
@@ -287,7 +287,7 @@ export default function ManageUserPage() {
              </div>
 
              <div className="space-y-1">
-               <Label>Phone</Label>
+               <Label>Số điện thoại</Label>
                <Input
                  value={newPhone}
                  onChange={(e) => setNewPhone(e.target.value)}
@@ -301,7 +301,7 @@ export default function ManageUserPage() {
                  onValueChange={(v) => setNewRole(v as Role)}
                >
                  <SelectTrigger>
-                   <SelectValue placeholder="Select role" />
+                   <SelectValue placeholder="Chọn Role" />
                  </SelectTrigger>
                  <SelectContent>
                    <SelectItem value="student">Student</SelectItem>
@@ -313,10 +313,10 @@ export default function ManageUserPage() {
 
              <div className="flex justify-end gap-3 pt-4">
                <Button variant="outline" onClick={() => setOpenCreate(false)}>
-                 Cancel
+                 Hủy
                </Button>
                <Button onClick={handleCreateUser} disabled={creating}>
-                 {creating ? "Creating..." : "Create"}
+                 {creating ? "Creating..." : "Tạo "}
                </Button>
              </div>
            </div>
@@ -327,14 +327,14 @@ export default function ManageUserPage() {
        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
          <DialogContent className="max-w-xl">
            <DialogHeader>
-             <DialogTitle>Edit User</DialogTitle>
+             <DialogTitle>Chỉnh sửa người dùng </DialogTitle>
            </DialogHeader>
 
            {selectedUser && (
              <div className="space-y-5">
                {/* NAME */}
                <div className="space-y-1">
-                 <Label>Name</Label>
+                 <Label>Tên</Label>
                  <Input value={selectedUser.name} disabled />
                </div>
 
@@ -346,7 +346,7 @@ export default function ManageUserPage() {
 
                {/* PHONE */}
                <div className="space-y-1">
-                 <Label>Phone</Label>
+                 <Label>Số điện thoại</Label>
                  <Input value={selectedUser.phone || "—"} disabled />
                </div>
 
@@ -370,14 +370,14 @@ export default function ManageUserPage() {
                  </div>
 
                  <div className="space-y-1">
-                   <Label>Status</Label>
+                   <Label>Trạng Thái</Label>
                    <Input value={selectedUser.status} disabled />
                  </div>
                </div>
 
                {/* CREATED AT */}
                <div className="space-y-1">
-                 <Label>Created At</Label>
+                 <Label>Tạo lúc </Label>
                  <Input
                    value={new Date(selectedUser.createdAt).toLocaleString()}
                    disabled
@@ -390,10 +390,10 @@ export default function ManageUserPage() {
                    variant="outline"
                    onClick={() => setSelectedUser(null)}
                  >
-                   Cancel
+                   Hủy
                  </Button>
                  <Button onClick={handleUpdateRole} disabled={updating}>
-                   {updating ? "Saving..." : "Save Changes"}
+                   {updating ? "Saving..." : "Lưu thay đổi"}
                  </Button>
                </div>
              </div>
