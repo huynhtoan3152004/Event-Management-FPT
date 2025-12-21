@@ -29,7 +29,7 @@ import { eventService } from "@/lib/services/event.service"
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState<TicketDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("upcoming")
+  const [activeTab, setActiveTab] = useState("all")
   const [qrModalUrl, setQrModalUrl] = useState<string>("")
   const [qrTicketCode, setQrTicketCode] = useState<string>("")
   const [eventLocations, setEventLocations] = useState<Record<string, string>>({})
@@ -86,6 +86,10 @@ export default function MyTicketsPage() {
 
   // Filter tickets theo status
   const getFilteredTickets = () => {
+    if (activeTab === "all") {
+      // Tất cả vé
+      return tickets
+    }
     return tickets.filter((ticket) => {
       if (activeTab === "upcoming") {
         // Sắp tới: ticket status là active
@@ -221,6 +225,7 @@ export default function MyTicketsPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
+            <TabsTrigger value="all">Tất cả</TabsTrigger>
             <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
             <TabsTrigger value="checked-in">Đã check-in</TabsTrigger>
             <TabsTrigger value="completed">Đã check-out</TabsTrigger>
@@ -236,11 +241,12 @@ export default function MyTicketsPage() {
           ) : filteredTickets.length === 0 ? (
             <TabsContent value={activeTab} className="mt-6">
               <div className="text-center py-12 text-muted-foreground">
+                {activeTab === "all" && "Chưa có vé nào"}
                 {activeTab === "upcoming" && "Chưa có vé sắp tới"}
                 {activeTab === "checked-in" && "Chưa có vé đã check-in"}
                 {activeTab === "completed" && "Chưa có vé đã check-out"}
                 {activeTab === "abandoned" && "Chưa có vé tham dự nhưng không check-out"}
-                {/* {activeTab === "used" && "Chưa có vé đã sử dụng"} */}
+                {activeTab === "cancelled" && "Chưa có vé đã hủy"}
               </div>
             </TabsContent>
           ) : (
