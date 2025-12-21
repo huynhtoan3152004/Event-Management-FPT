@@ -107,7 +107,8 @@ export function HeroSection() {
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {featuredEvents.map((event) => {
-                  const redirectUrl = `/login?redirect=/events/${event.eventId}`;
+                 const redirectUrl = "/login";
+
 
                   return (
                     <div

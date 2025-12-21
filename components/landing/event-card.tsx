@@ -22,7 +22,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
   const cardRef = useCardHover<HTMLDivElement>();
 
   // Redirect URL để quay về đúng event sau khi login
-  const redirectUrl = `/login?redirect=/events/${event.id}`;
+  const redirectUrl = "/login";
 
   /* ========= COMPACT CARD ========= */
   if (variant === "compact") {
