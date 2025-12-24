@@ -508,38 +508,64 @@
         try {
           await ticketService.checkoutByCode(codeToCheck);
 
+          // Lấy thông tin vé ngay sau khi checkout để có studentName
+          // Sử dụng getEventTickets vì nó trả về studentName, còn getTicketByCode có thể không có
+          let studentName = "";
+          let seatInfo: string | undefined = undefined;
+          try {
+            const ticketsResponse = await ticketService.getEventTickets(eventId);
+            if (ticketsResponse.success && ticketsResponse.data) {
+              // Tìm ticket vừa checkout trong danh sách
+              const ticket = ticketsResponse.data.find(
+                (t: any) => t.ticketCode?.toLowerCase() === codeToCheck.toLowerCase()
+              );
+              if (ticket) {
+                studentName = (ticket as any).studentName || ticket.studentId || "";
+                seatInfo = ticket.seatNumber || undefined;
+              }
+            }
+            // Fallback: nếu không tìm thấy trong getEventTickets, thử getTicketByCode
+            if (!studentName) {
+              const ticketResponse = await ticketService.getTicketByCode(codeToCheck);
+              if (ticketResponse.success && ticketResponse.data) {
+                const t = ticketResponse.data as any;
+                studentName = t.studentName || t.studentId || "";
+                seatInfo = t.seatNumber || undefined;
+              }
+            }
+          } catch (err) {
+            // Nếu không lấy được thông tin vé thì bỏ qua
+            console.error("Error fetching ticket info after checkout:", err);
+          }
+
           setCheckInResult({
             status: "checked_out",
             message: "Check-out thành công",
             ticketCode: codeToCheck,
+            attendeeName: studentName,
+            seatInfo: seatInfo,
           });
 
           // Optimistically add to recentCheckOuts so UI cập nhật ngay lập tức
-          try {
-            const ticketResponse = await ticketService.getTicketByCode(codeToCheck);
-            if (ticketResponse.success && ticketResponse.data) {
-              const t = ticketResponse.data;
-              const record: CheckInRecord = {
-                id: `${t.ticketCode}-${Date.now()}`,
-                attendeeName: t.studentId,
-                ticketCode: t.ticketCode,
-                // Dùng thời gian hiện tại làm thời gian check-out hiển thị
-                checkInTime: new Date().toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-                status: "checked_out",
-                seatInfo: t.seatNumber || undefined,
-              };
+          if (studentName) {
+            const record: CheckInRecord = {
+              id: `${codeToCheck}-${Date.now()}`,
+              attendeeName: studentName,
+              ticketCode: codeToCheck,
+              // Dùng thời gian hiện tại làm thời gian check-out hiển thị
+              checkInTime: new Date().toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              status: "checked_out",
+              seatInfo: seatInfo,
+            };
 
-              setRecentCheckOuts((prev) => {
-                // Thêm lên đầu, tránh trùng mã vé liên tiếp
-                const filtered = prev.filter((r) => r.ticketCode !== record.ticketCode);
-                return [record, ...filtered].slice(0, 10);
-              });
-            }
-          } catch (err) {
-            // Nếu không lấy được thông tin vé thì bỏ qua, đã có fetchData() phía dưới
+            setRecentCheckOuts((prev) => {
+              // Thêm lên đầu, tránh trùng mã vé liên tiếp
+              const filtered = prev.filter((r) => r.ticketCode !== record.ticketCode);
+              return [record, ...filtered].slice(0, 10);
+            });
           }
 
           setTicketCode("");
@@ -604,7 +630,7 @@
            setTimeout(() => setCheckInResult(null), 5000);
          }
        },
-       [ticketCode, isProcessing, fetchData]
+       [ticketCode, isProcessing, fetchData, eventId]
      );
    
    
